@@ -1,4 +1,3 @@
-
 export enum OrderStatus {
   PENDING = 'Pending',
   PROCESSING = 'Processing',
@@ -14,6 +13,7 @@ export interface Product {
   image: string;
   category: string;
   stock: number;
+  arModel?: string;
 }
 
 export interface CartItem extends Product {
@@ -40,4 +40,4 @@ export interface User {
   isAdmin: boolean;
 }
 
-export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation';
+export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth';

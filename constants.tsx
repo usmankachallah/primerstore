@@ -1,4 +1,3 @@
-
 import { Product, OrderStatus, Order } from './types';
 
 export const INITIAL_PRODUCTS: Product[] = [
@@ -9,7 +8,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'Next-generation neural audio experience with active spatial dampening.',
     image: 'https://picsum.photos/seed/pods/600/600',
     category: 'Audio',
-    stock: 25
+    stock: 25,
+    arModel: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
   },
   {
     id: '2',
@@ -27,7 +27,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     description: 'High-fidelity virtual reality interface for total digital immersion.',
     image: 'https://picsum.photos/seed/vr/600/600',
     category: 'Gaming',
-    stock: 8
+    stock: 8,
+    arModel: 'https://modelviewer.dev/shared-assets/models/Astronaut.glb'
   },
   {
     id: '4',

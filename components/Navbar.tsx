@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package } from 'lucide-react';
+import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package, LogIn } from 'lucide-react';
 import { View, User as UserType } from '../types';
 
 interface NavbarProps {
@@ -60,10 +59,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user }
             )}
           </button>
           <button 
-            onClick={() => setView('profile')}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors group"
+            onClick={() => setView(user ? 'profile' : 'auth')}
+            className={`p-2 hover:bg-white/5 rounded-full transition-colors group flex items-center gap-2 ${currentView === 'profile' || currentView === 'auth' ? 'text-cyan-400 bg-white/5' : 'text-slate-300'}`}
           >
-            <User className="w-5 h-5 text-slate-300 group-hover:text-cyan-400" />
+            {user ? (
+              <User className="w-5 h-5 group-hover:text-cyan-400" />
+            ) : (
+              <LogIn className="w-5 h-5 group-hover:text-cyan-400" />
+            )}
           </button>
         </div>
       </div>
