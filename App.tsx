@@ -4,13 +4,14 @@ import ChatSupport from './components/ChatSupport';
 import AdminPanel from './components/AdminPanel';
 import ProductModal from './components/ProductModal';
 import AuthPage from './components/AuthPage';
+import AdminAuthPage from './components/AdminAuthPage';
 import { Product, CartItem, Order, OrderStatus, View, User } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
   ShoppingBag, ArrowRight, Star, ArrowLeft, CreditCard, 
   CheckCircle2, Search, Filter, Package, Cpu, 
   User as UserIcon, Settings, Heart, LayoutDashboard, 
-  History, Shield, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut
+  History, Shield, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut, Lock
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -634,6 +635,7 @@ const App: React.FC = () => {
         {view === 'checkout' && renderCheckout()}
         {view === 'profile' && renderProfile()}
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
+        {view === 'admin-auth' && <AdminAuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'order-confirmation' && renderOrderConfirmation()}
         {view === 'admin' && user?.isAdmin && <AdminPanel products={products} orders={orders} setProducts={setProducts} updateOrderStatus={updateOrderStatus} />}
       </main>
@@ -650,8 +652,20 @@ const App: React.FC = () => {
       />
       <footer className="glass border-t border-white/10 py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2"><Cpu className="text-cyan-500 w-6 h-6" /><span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span></div>
-          <div className="flex gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest"><a href="#" className="hover:text-cyan-400">Governance</a><a href="#" className="hover:text-cyan-400">Privacy Protocol</a></div>
+          <div className="flex items-center gap-2">
+            <Cpu className="text-cyan-500 w-6 h-6" />
+            <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
+          </div>
+          <div className="flex gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest">
+            <a href="#" className="hover:text-cyan-400">Governance</a>
+            <a href="#" className="hover:text-cyan-400">Privacy Protocol</a>
+            <button 
+              onClick={() => setView('admin-auth')}
+              className="hover:text-purple-400 transition-colors flex items-center gap-1.5 opacity-40 hover:opacity-100"
+            >
+              <Lock className="w-3 h-3" /> Admin Uplink
+            </button>
+          </div>
           <p className="text-xs text-slate-600 font-bold">© 2077 PRIMER CORP. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>

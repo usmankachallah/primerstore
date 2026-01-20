@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, ShoppingBag, Star, StarHalf, ShieldCheck, Zap, Package, Heart, Minus, Plus, Bot, Sparkles, Box, Maximize } from 'lucide-react';
+import { X, ShoppingBag, Star, StarHalf, ShieldCheck, Zap, Package, Heart, Minus, Plus, Bot, Sparkles, Box, Maximize, BarChart3 } from 'lucide-react';
 import { Product, User } from '../types';
 import { getAIRecommendations } from '../services/geminiService';
 
@@ -15,15 +15,8 @@ interface ProductModalProps {
   onToggleWishlist: (productId: string) => void;
 }
 
-// Fix for model-viewer custom element typing in JSX by augmenting the global JSX namespace.
-// This ensures that the custom 'model-viewer' tag is recognized by the TypeScript compiler.
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'model-viewer': any;
-    }
-  }
-}
+// Fix for model-viewer custom element typing in JSX by defining a typed alias.
+const ModelViewer = 'model-viewer' as any;
 
 const ProductModal: React.FC<ProductModalProps> = ({ 
   product, 
@@ -93,7 +86,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
         <div className="md:w-5/12 relative bg-white/5 aspect-square md:aspect-auto">
           {showAR && product.arModel ? (
             <div className="w-full h-full relative group">
-              <model-viewer
+              {/* Fix: Using ModelViewer alias to avoid intrinsic element type errors */}
+              <ModelViewer
                 src={product.arModel}
                 ar
                 ar-modes="webxr scene-viewer quick-look"
@@ -105,7 +99,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 <button slot="ar-button" className="absolute bottom-6 right-6 bg-cyan-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-400/50 shadow-lg shadow-cyan-500/20">
                   Activate AR Overlay
                 </button>
-              </model-viewer>
+              </ModelViewer>
               <button 
                 onClick={() => setShowAR(false)}
                 className="absolute top-6 left-6 z-20 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white text-[10px] font-bold px-3 py-1.5 flex items-center gap-2"
@@ -158,21 +152,46 @@ const ProductModal: React.FC<ProductModalProps> = ({
             </h2>
             
             <div className="mb-6">
-              <p className="text-slate-400 text-sm leading-relaxed mb-4">
+              <p className="text-slate-400 text-sm leading-relaxed mb-6">
                 {product.description}
               </p>
               
-              {/* Star Rating System */}
-              <div className="flex items-center gap-3 py-2 px-4 bg-white/5 rounded-2xl w-fit border border-white/5">
-                <div className="flex items-center gap-1">
-                  {[...Array(4)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
-                  ))}
-                  <StarHalf className="w-4 h-4 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+              {/* Star Rating System Section */}
+              <div className="p-6 bg-white/5 rounded-[2rem] border border-white/10 flex flex-col md:flex-row gap-8 items-center mb-8">
+                <div className="text-center md:border-r md:border-white/10 md:pr-8">
+                  <div className="text-4xl font-black text-white mb-1">4.5</div>
+                  <div className="flex items-center justify-center gap-1 mb-2">
+                    {[...Array(4)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+                    ))}
+                    <StarHalf className="w-4 h-4 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+                  </div>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Rating</div>
                 </div>
-                <div className="flex items-center gap-2 border-l border-white/10 pl-3">
-                  <span className="text-sm font-black text-white">4.5</span>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">Performance Index</span>
+
+                <div className="flex-1 w-full space-y-2">
+                  {[
+                    { stars: 5, percent: 78 },
+                    { stars: 4, percent: 15 },
+                    { stars: 3, percent: 4 },
+                    { stars: 2, percent: 2 },
+                    { stars: 1, percent: 1 },
+                  ].map((row) => (
+                    <div key={row.stars} className="flex items-center gap-3">
+                      <span className="text-[10px] font-bold text-slate-500 w-2">{row.stars}</span>
+                      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-cyan-500/50 rounded-full" 
+                          style={{ width: `${row.percent}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] font-bold text-slate-600 w-6">{row.percent}%</span>
+                    </div>
+                  ))}
+                  <div className="pt-2 flex items-center gap-2 text-[9px] text-slate-500 font-bold uppercase tracking-tight">
+                    <BarChart3 className="w-3 h-3 text-cyan-400" />
+                    Synchronized with 482 telemetry logs
+                  </div>
                 </div>
               </div>
             </div>
@@ -227,7 +246,10 @@ const ProductModal: React.FC<ProductModalProps> = ({
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                    <Sparkles className="w-3.5 h-3.5 animate-pulse" /> AI Recommended For You
+                    <span className="relative">
+                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                    </span>
+                    AI Recommended For You
                   </h3>
                   <span className="text-[8px] font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/20">
                     ZENITH INTELLIGENCE
@@ -266,7 +288,10 @@ const ProductModal: React.FC<ProductModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2 mb-6">
-              <Package className="w-3.5 h-3.5 text-slate-500" />
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
               <span className={`text-[10px] font-bold ${product.stock < 10 ? 'text-red-400' : 'text-green-400'}`}>
                 {product.stock} units currently in distribution grid
               </span>
