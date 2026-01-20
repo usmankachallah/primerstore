@@ -1,0 +1,7 @@
+{
+  "name": "PRIMERSTORE - Futuristic MVP",
+  "description": "A high-end, futuristic e-commerce MVP featuring glassmorphism, AI-powered support, and a comprehensive admin dashboard.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
