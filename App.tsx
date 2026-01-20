@@ -16,7 +16,8 @@ import {
 
 const App: React.FC = () => {
   // --- State ---
-  const [view, setView] = useState<View>('home');
+  // Initial view set to 'admin-auth' as requested to open the admin login page.
+  const [view, setView] = useState<View>('admin-auth');
   const [profileTab, setProfileTab] = useState<'overview' | 'orders' | 'wishlist' | 'settings'>('overview');
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
