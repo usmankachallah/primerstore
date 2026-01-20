@@ -5,6 +5,8 @@ import AdminPanel from './components/AdminPanel';
 import ProductModal from './components/ProductModal';
 import AuthPage from './components/AuthPage';
 import AdminAuthPage from './components/AdminAuthPage';
+import AboutPage from './components/AboutPage';
+import ContactPage from './components/ContactPage';
 import { Product, CartItem, Order, OrderStatus, View, User } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
@@ -16,8 +18,8 @@ import {
 
 const App: React.FC = () => {
   // --- State ---
-  // Initial view set to 'admin-auth' as requested to open the admin login page.
-  const [view, setView] = useState<View>('admin-auth');
+  // Initial view set to 'home'
+  const [view, setView] = useState<View>('home');
   const [profileTab, setProfileTab] = useState<'overview' | 'orders' | 'wishlist' | 'settings'>('overview');
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -150,7 +152,7 @@ const App: React.FC = () => {
             >
               Initialize Shopping <ArrowRight className="w-5 h-5" />
             </button>
-            <button className="px-8 py-4 glass hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/10">
+            <button onClick={() => setView('about')} className="px-8 py-4 glass hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/10">
               View Roadmap
             </button>
           </div>
@@ -635,6 +637,8 @@ const App: React.FC = () => {
         {view === 'cart' && renderCart()}
         {view === 'checkout' && renderCheckout()}
         {view === 'profile' && renderProfile()}
+        {view === 'about' && <AboutPage />}
+        {view === 'contact' && <ContactPage />}
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'admin-auth' && <AdminAuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'order-confirmation' && renderOrderConfirmation()}
@@ -658,8 +662,8 @@ const App: React.FC = () => {
             <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
           </div>
           <div className="flex gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest">
-            <a href="#" className="hover:text-cyan-400">Governance</a>
-            <a href="#" className="hover:text-cyan-400">Privacy Protocol</a>
+            <button onClick={() => setView('about')} className="hover:text-cyan-400">About</button>
+            <button onClick={() => setView('contact')} className="hover:text-cyan-400">Contact</button>
             <button 
               onClick={() => setView('admin-auth')}
               className="hover:text-purple-400 transition-colors flex items-center gap-1.5 opacity-40 hover:opacity-100"

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package, LogIn } from 'lucide-react';
+import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package, LogIn, Info, MessageCircle } from 'lucide-react';
 import { View, User as UserType } from '../types';
 
 interface NavbarProps {
@@ -35,6 +35,18 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user }
             className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'shop' ? 'text-cyan-400' : ''}`}
           >
             <Package className="w-4 h-4" /> Products
+          </button>
+          <button 
+            onClick={() => setView('about')}
+            className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'about' ? 'text-cyan-400' : ''}`}
+          >
+            <Info className="w-4 h-4" /> About
+          </button>
+          <button 
+            onClick={() => setView('contact')}
+            className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'contact' ? 'text-cyan-400' : ''}`}
+          >
+            <MessageCircle className="w-4 h-4" /> Contact
           </button>
           {user?.isAdmin && (
             <button 
