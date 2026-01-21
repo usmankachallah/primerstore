@@ -15,7 +15,7 @@ import {
   CheckCircle2, Search, Filter, Package, Cpu, 
   User as UserIcon, Settings, Heart, LayoutDashboard, 
   History, Shield, ShieldCheck, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut, Lock,
-  Wallet, Fingerprint, Activity
+  Wallet, Fingerprint, Activity, Key, Eye, EyeOff, AlertTriangle
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -430,6 +430,20 @@ const App: React.FC = () => {
   };
 
   const renderProfile = () => {
+    const [showPassword, setShowPassword] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handlePasswordChange = (e: React.FormEvent) => {
+      e.preventDefault();
+      alert("Neural password encryption successful. Uplink re-secured.");
+    };
+
+    const confirmAccountDeletion = () => {
+      if (window.confirm("FATAL ERROR: This will permanently erase your neural presence from PRIMER matrix. Proceed?")) {
+        handleLogout();
+      }
+    };
+
     return (
       <div className="max-w-7xl mx-auto px-6 py-32 animate-in fade-in duration-700">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -443,7 +457,7 @@ const App: React.FC = () => {
                 </div>
               </div>
               <h2 className="text-xl font-black">{user?.name}</h2>
-              <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-bold">Standard Citizen</p>
+              <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-bold">Citizen Unit #{user?.id.slice(0, 6).toUpperCase()}</p>
             </div>
 
             <div className="glass rounded-3xl p-2 border border-white/10 flex flex-col">
@@ -469,7 +483,7 @@ const App: React.FC = () => {
                 onClick={() => setProfileTab('settings')}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'settings' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
               >
-                <Settings className="w-4 h-4" /> Identity Parameters
+                <Settings className="w-4 h-4" /> System Parameters
               </button>
             </div>
 
@@ -520,19 +534,22 @@ const App: React.FC = () => {
                   {orders.length > 0 ? (
                     <div className="space-y-4">
                       {orders.slice(0, 3).map(o => (
-                        <div key={o.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div key={o.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-cyan-500/20 transition-all">
                           <div className="flex items-center gap-4">
                             <div className="p-3 bg-cyan-500/10 rounded-xl">
                               <Package className="w-5 h-5 text-cyan-400" />
                             </div>
                             <div>
-                              <p className="font-bold text-sm">Transmission #{o.id.toUpperCase()}</p>
+                              <p className="font-bold text-sm group-hover:text-cyan-400 transition-colors">Transmission #{o.id.toUpperCase()}</p>
                               <p className="text-xs text-slate-500">{o.date}</p>
                             </div>
                           </div>
                           <div className="text-right">
                             <p className="font-black text-sm">${o.total}</p>
-                            <span className="text-[10px] uppercase font-black text-cyan-500 tracking-widest">{o.status}</span>
+                            <span className={`text-[10px] uppercase font-black tracking-widest ${
+                              o.status === OrderStatus.DELIVERED ? 'text-green-400' : 
+                              o.status === OrderStatus.PENDING ? 'text-yellow-400' : 'text-cyan-500'
+                            }`}>{o.status}</span>
                           </div>
                         </div>
                       ))}
@@ -551,15 +568,23 @@ const App: React.FC = () => {
 
             {profileTab === 'orders' && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <h3 className="text-2xl font-black">Transmission Archive</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black">Transmission Archive</h3>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Activity className="w-3 h-3 text-cyan-400" /> Sync Active
+                  </div>
+                </div>
                 {orders.length > 0 ? (
                   <div className="space-y-4">
                     {orders.map(o => (
-                      <div key={o.id} className="glass rounded-3xl p-6 border border-white/10">
+                      <div key={o.id} className="glass rounded-3xl p-6 border border-white/10 hover:border-white/20 transition-all">
                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                           <div>
                             <p className="font-mono text-cyan-400 text-lg mb-1">#{o.id.toUpperCase()}</p>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">{o.date} • {o.items.length} Modules</p>
+                            <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1.5 font-bold">
+                              <MapPin className="w-2.5 h-2.5" /> {o.address}
+                            </p>
                           </div>
                           <div className="flex flex-col items-end">
                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-1 ${
@@ -590,6 +615,9 @@ const App: React.FC = () => {
                   <div className="glass rounded-3xl p-12 text-center border border-white/10">
                     <History className="w-12 h-12 text-slate-700 mx-auto mb-4" />
                     <p className="text-slate-500">Archive is currently empty.</p>
+                    <button onClick={() => setView('shop')} className="mt-6 px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-all">
+                      Browse Inventory
+                    </button>
                   </div>
                 )}
               </div>
@@ -638,12 +666,18 @@ const App: React.FC = () => {
 
             {profileTab === 'settings' && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <h3 className="text-2xl font-black">Identity Parameters</h3>
+                <h3 className="text-2xl font-black">System Parameters</h3>
+                
+                {/* Identity Section */}
                 <div className="glass rounded-3xl p-8 border border-white/10">
+                  <div className="flex items-center gap-2 mb-6 text-cyan-400">
+                    <UserIcon className="w-4 h-4" />
+                    <h4 className="text-xs font-black uppercase tracking-widest">Biological Data</h4>
+                  </div>
                   <form onSubmit={handleUpdateProfile} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Universal Name</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Universal Designation</label>
                         <div className="relative">
                           <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                           <input 
@@ -654,33 +688,20 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Neural Uplink (Email)</label>
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Comms Uplink (Phone)</label>
                         <div className="relative">
-                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                           <input 
-                            type="email" 
-                            defaultValue={user?.email}
-                            disabled
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 opacity-50 cursor-not-allowed"
+                            type="text" 
+                            defaultValue={user?.phone}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-cyan-500 transition-colors"
                           />
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Direct Comms Link (Phone)</label>
-                      <div className="relative">
-                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        <input 
-                          type="text" 
-                          defaultValue={user?.phone}
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-cyan-500 transition-colors"
-                        />
-                      </div>
-                    </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Deployment Coordinates (Address)</label>
+                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Primary Deployment Node (Address)</label>
                       <div className="relative">
                         <MapPin className="absolute left-4 top-4 w-4 h-4 text-slate-500" />
                         <textarea 
@@ -696,17 +717,85 @@ const App: React.FC = () => {
                         type="submit"
                         className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs"
                       >
-                        Recalibrate Identity
+                        Commit Changes
                       </button>
                     </div>
                   </form>
                 </div>
 
-                <div className="glass rounded-3xl p-8 border border-white/10 border-red-500/20 bg-red-500/5">
-                  <h4 className="text-red-400 font-black mb-2 uppercase tracking-widest text-xs">Danger Zone</h4>
-                  <p className="text-slate-500 text-sm mb-6">Once deleted, your neural data and credit history will be permanently erased from the matrix.</p>
-                  <button className="px-6 py-2 border border-red-500/30 text-red-500 hover:bg-red-500/10 rounded-xl text-xs font-black transition-all uppercase tracking-widest">
-                    Terminate Account
+                {/* Security Section */}
+                <div className="glass rounded-3xl p-8 border border-white/10">
+                  <div className="flex items-center gap-2 mb-6 text-purple-400">
+                    <Shield className="w-4 h-4" />
+                    <h4 className="text-xs font-black uppercase tracking-widest">Security Protocol</h4>
+                  </div>
+                  <form onSubmit={handlePasswordChange} className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Current Encryption Key</label>
+                        <div className="relative">
+                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                          <input 
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-12 focus:outline-none focus:border-purple-500 transition-colors"
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-purple-400 transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">New Neural Key</label>
+                          <div className="relative">
+                            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input 
+                              type="password"
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Sync Key</label>
+                          <div className="relative">
+                            <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input 
+                              type="password"
+                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-purple-500 transition-colors"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <button 
+                        type="submit"
+                        className="px-8 py-3 glass border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 rounded-2xl font-black transition-all shadow-xl shadow-purple-500/10 uppercase tracking-widest text-xs"
+                      >
+                        Refresh Encryption
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="glass rounded-3xl p-8 border border-red-500/20 bg-red-500/5">
+                  <div className="flex items-center gap-2 mb-4 text-red-400">
+                    <AlertTriangle className="w-5 h-5" />
+                    <h4 className="text-sm font-black uppercase tracking-widest">Danger Zone</h4>
+                  </div>
+                  <p className="text-slate-500 text-sm mb-6 max-w-xl">Termination will result in permanent loss of all credits, order history, and neural wishlist data. This action is irreversible once the uplink is severed.</p>
+                  <button 
+                    onClick={confirmAccountDeletion}
+                    className="px-8 py-3 bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl text-xs font-black transition-all uppercase tracking-widest"
+                  >
+                    Terminate Identity Protocol
                   </button>
                 </div>
               </div>
@@ -723,7 +812,10 @@ const App: React.FC = () => {
         <div className="w-24 h-24 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce"><CheckCircle2 className="w-12 h-12 text-cyan-400" /></div>
         <h1 className="text-4xl font-black mb-4">Transmission Success</h1>
         <p className="text-slate-400 mb-8">Your order has been encoded into the blockchain. Reference: #{orders[0]?.id.toUpperCase()}</p>
-        <button onClick={() => setView('home')} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl font-bold">Return to Nexus</button>
+        <div className="flex flex-col gap-4">
+          <button onClick={() => setView('profile')} className="w-full py-4 glass border border-white/10 hover:bg-white/5 rounded-2xl font-bold transition-all">View Order History</button>
+          <button onClick={() => setView('home')} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl font-bold shadow-lg shadow-cyan-500/20 transition-all">Return to Nexus</button>
+        </div>
       </div>
     </div>
   );
