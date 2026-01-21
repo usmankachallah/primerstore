@@ -5,7 +5,7 @@ import {
   Trash2, Plus, Key, Eye, EyeOff, AlertTriangle, 
   CheckCircle2, Lock, Phone, Mail, MapPin, 
   Zap, Activity, Cpu, ChevronRight, Save,
-  Fingerprint, Package, Bot
+  Fingerprint, Package, Bot, X
 } from 'lucide-react';
 import { User as UserType } from '../types';
 
@@ -18,6 +18,10 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUpdateUser }) => {
   const [activeSection, setActiveSection] = useState<'identity' | 'security' | 'notifications' | 'interface' | 'network'>('identity');
   const [showPassword, setShowPassword] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // State for adding new address
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
 
   const [notifs, setNotifs] = useState({
     orders: true,
@@ -40,6 +44,20 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUpdateUser }) => {
     }, 1200);
   };
 
+  const handleAddAddress = () => {
+    if (!newAddress.trim() || !user) return;
+    const updatedAddresses = [...user.savedAddresses, newAddress.trim()];
+    onUpdateUser('savedAddresses', updatedAddresses);
+    setNewAddress('');
+    setIsAddingAddress(false);
+  };
+
+  const handleRemoveAddress = (index: number) => {
+    if (!user) return;
+    const updatedAddresses = user.savedAddresses.filter((_, i) => i !== index);
+    onUpdateUser('savedAddresses', updatedAddresses);
+  };
+
   const sections = [
     { id: 'identity', label: 'Biological Core', icon: <User className="w-4 h-4" />, color: 'text-cyan-400' },
     { id: 'security', label: 'Neural Shield', icon: <Shield className="w-4 h-4" />, color: 'text-purple-400' },
@@ -52,7 +70,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUpdateUser }) => {
     <div className="max-w-7xl mx-auto px-6 py-32 animate-in fade-in duration-700">
       <div className="mb-12">
         <h1 className="text-4xl font-black mb-2 flex items-center gap-4">
-          <Settings className="w-8 h-8 text-cyan-400" />
+          <SettingsIcon className="w-8 h-8 text-cyan-400" />
           SYSTEM <span className="gradient-text">PARAMETERS</span>
         </h1>
         <p className="text-slate-500 font-medium">Calibrate your neural experience and security protocols.</p>
@@ -145,16 +163,54 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUpdateUser }) => {
                   </h3>
                   <div className="space-y-4">
                     {user?.savedAddresses.map((addr, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                      <div key={idx} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:border-white/10 transition-all group">
                         <span className="text-sm font-medium">{addr}</span>
-                        <button className="p-2 text-slate-500 hover:text-red-400 transition-colors">
+                        <button 
+                          onClick={() => handleRemoveAddress(idx)}
+                          className="p-2 text-slate-500 hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
-                    <button className="w-full py-4 border border-dashed border-white/10 rounded-2xl text-xs font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 transition-all uppercase tracking-widest flex items-center justify-center gap-2">
-                      <Plus className="w-4 h-4" /> Initialize New Node
-                    </button>
+                    
+                    {isAddingAddress ? (
+                      <div className="space-y-3 p-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/20 animate-in slide-in-from-top-2 duration-300">
+                        <div className="relative">
+                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400" />
+                          <input 
+                            type="text" 
+                            autoFocus
+                            placeholder="Enter deployment coordinates..."
+                            value={newAddress}
+                            onChange={(e) => setNewAddress(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleAddAddress()}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:border-cyan-500 transition-all"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={handleAddAddress}
+                            className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                          >
+                            Confirm Sync
+                          </button>
+                          <button 
+                            onClick={() => { setIsAddingAddress(false); setNewAddress(''); }}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-400 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
+                          >
+                            Abort
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => setIsAddingAddress(true)}
+                        className="w-full py-4 border border-dashed border-white/10 rounded-2xl text-xs font-black text-slate-500 hover:text-cyan-400 hover:border-cyan-500/50 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" /> Initialize New Node
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -382,8 +438,8 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ user, onUpdateUser }) => {
   );
 };
 
-// Re-using Settings icon from lucide for the main header
-const Settings = ({ className }: { className?: string }) => (
+// Internal Settings icon
+const SettingsIcon = ({ className }: { className?: string }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
     viewBox="0 0 24 24" 
