@@ -15,6 +15,7 @@ import SupportTicketPage from './components/SupportTicketPage';
 import RoadmapPage from './components/RoadmapPage';
 import SyncTermsPage from './components/SyncTermsPage';
 import BiometricPolicyPage from './components/BiometricPolicyPage';
+import Newsletter from './components/Newsletter';
 import { Product, CartItem, Order, OrderStatus, View, User } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
@@ -318,6 +319,9 @@ const App: React.FC = () => {
             ))}
           </div>
         </section>
+
+        {/* Newsletter Section */}
+        <Newsletter />
       </div>
     );
   };
@@ -928,7 +932,7 @@ const App: React.FC = () => {
               setProfileTab('orders');
               setView('profile');
             }} 
-            className="px-10 py-4 glass hover:bg-white/10 rounded-2xl font-black transition-all border border-white/10 uppercase tracking-widest text-xs text-slate-400"
+            className="px-10 py-4 glass hover:bg-white/10 text-white rounded-2xl font-black transition-all border border-white/10 uppercase tracking-widest text-xs text-slate-400"
           >
             View Order Ledger
           </button>

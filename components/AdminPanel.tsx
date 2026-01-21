@@ -4,7 +4,7 @@ import {
   CheckCircle, Clock, Package, 
   DollarSign, TrendingUp, Target, ShoppingBag, 
   Layers, Activity, Zap, Users, Search, ChevronRight, User, Shield, Star,
-  Plus, Edit3, Trash2, X, Save, Image as ImageIcon, Tag
+  Plus, Edit3, Trash2, X, Save, Image as ImageIcon, Tag, Eye, Navigation, MapPin, Truck, AlertCircle
 } from 'lucide-react';
 import { Product, Order, OrderStatus } from '../types';
 import { 
@@ -25,10 +25,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
   const [tab, setTab] = useState<'orders' | 'stats' | 'citizens' | 'inventory'>('stats');
   const [citizenSearch, setCitizenSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
   
   // State for Product Editing/Adding
   const [isEditing, setIsEditing] = useState<string | 'new' | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Product>>({});
+
+  // State for Order Details/Tracking
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
 
   // --- Calculations ---
   const totalRevenue = useMemo(() => orders.reduce((acc, curr) => acc + curr.total, 0), [orders]);
@@ -46,6 +51,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
     });
     return Object.entries(categories).map(([name, value]) => ({ name, value }));
   }, [orders]);
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(o => {
+      const matchesSearch = o.id.toLowerCase().includes(orderSearch.toLowerCase()) || 
+                           o.customerName.toLowerCase().includes(orderSearch.toLowerCase());
+      const matchesStatus = statusFilter === 'All' || o.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [orders, orderSearch, statusFilter]);
 
   // Derive unique citizens from orders
   const citizens = useMemo(() => {
@@ -264,8 +278,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
             </button>
           </div>
 
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <table className="w-full text-left text-sm">
+          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
+            <table className="w-full text-left text-sm min-w-[800px]">
               <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                 <tr>
                   <th className="px-8 py-6">Unit Image</th>
@@ -328,8 +342,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
 
       {tab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <table className="w-full text-left text-sm">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <input 
+                type="text" 
+                placeholder="Locate transmission (ID or name)..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+              />
+            </div>
+            <div className="flex gap-2">
+              {['All', OrderStatus.PENDING, OrderStatus.PROCESSING, OrderStatus.DELIVERED].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status ? 'bg-cyan-600 text-white' : 'glass text-slate-400 hover:text-white'}`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
+            <table className="w-full text-left text-sm min-w-[900px]">
               <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                 <tr>
                   <th className="px-8 py-6">Transmission ID</th>
@@ -337,12 +375,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
                   <th className="px-8 py-6">Timestamp</th>
                   <th className="px-8 py-6">Total Credits</th>
                   <th className="px-8 py-6">Sync Status</th>
-                  <th className="px-8 py-6 text-right">Override</th>
+                  <th className="px-8 py-6 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {orders.map(o => (
-                  <tr key={o.id} className="hover:bg-white/5 transition-colors">
+                {filteredOrders.map(o => (
+                  <tr key={o.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-8 py-5 font-mono text-cyan-400">#{o.id.toUpperCase()}</td>
                     <td className="px-8 py-5">
                       <div className="font-black text-white">{o.customerName}</div>
@@ -353,26 +391,39 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
                     <td className="px-8 py-5">
                       <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest w-fit border ${
                         o.status === OrderStatus.DELIVERED ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
-                        o.status === OrderStatus.PROCESSING ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                        o.status === OrderStatus.PROCESSING ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
+                        o.status === OrderStatus.CANCELLED ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                        'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
                       }`}>
                         <div className={`w-1.5 h-1.5 rounded-full ${
                           o.status === OrderStatus.DELIVERED ? 'bg-green-400' : 
-                          o.status === OrderStatus.PROCESSING ? 'bg-cyan-400' : 'bg-yellow-400'
+                          o.status === OrderStatus.PROCESSING ? 'bg-cyan-400' : 
+                          o.status === OrderStatus.CANCELLED ? 'bg-rose-400' :
+                          'bg-yellow-400'
                         } animate-pulse`} />
                         {o.status}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <select 
-                        className="bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase tracking-tighter rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 text-slate-300"
-                        value={o.status}
-                        onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus)}
-                      >
-                        <option value={OrderStatus.PENDING}>Pending</option>
-                        <option value={OrderStatus.PROCESSING}>Processing</option>
-                        <option value={OrderStatus.DELIVERED}>Delivered</option>
-                        <option value={OrderStatus.CANCELLED}>Cancelled</option>
-                      </select>
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => setViewingOrder(o)}
+                          className="p-2 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 rounded-xl transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Telemetry
+                        </button>
+                        <select 
+                          className="bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase tracking-tighter rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 text-slate-300"
+                          value={o.status}
+                          onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus)}
+                        >
+                          <option value={OrderStatus.PENDING}>Pending</option>
+                          <option value={OrderStatus.PROCESSING}>Processing</option>
+                          <option value={OrderStatus.DELIVERED}>Delivered</option>
+                          <option value={OrderStatus.CANCELLED}>Cancelled</option>
+                        </select>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -394,8 +445,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
               className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
             />
           </div>
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <table className="w-full text-left text-sm">
+          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
+            <table className="w-full text-left text-sm min-w-[800px]">
               <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                 <tr>
                   <th className="px-8 py-6">Citizen Core</th>
@@ -523,6 +574,144 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
               <Save className="w-5 h-5" />
               Authorize Configuration Change
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Order Telemetry Modal (Tracking & Management) */}
+      {viewingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setViewingOrder(null)} />
+          <div className="relative w-full max-w-4xl glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col md:flex-row h-[85vh] max-h-[800px]">
+            {/* Left Column: Tracking Visualization */}
+            <div className="md:w-1/3 bg-[#010409] p-8 border-r border-white/5 flex flex-col">
+              <div className="mb-10">
+                <h3 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-2">Logistics Pipeline</h3>
+                <h2 className="text-xl font-black">TRANSMISSION TRACKING</h2>
+              </div>
+
+              <div className="flex-1 relative space-y-12 pl-6">
+                {/* Vertical Line */}
+                <div className="absolute left-[33px] top-2 bottom-2 w-0.5 bg-white/5" />
+                
+                {[
+                  { label: 'Uplink Initiated', status: 'Complete', icon: <Zap className="w-4 h-4" /> },
+                  { label: 'Orbital Processing', status: viewingOrder.status === OrderStatus.PENDING ? 'Active' : 'Complete', icon: <Activity className="w-4 h-4" /> },
+                  { label: 'Sector Dispatch', status: viewingOrder.status === OrderStatus.PROCESSING ? 'Active' : (viewingOrder.status === OrderStatus.DELIVERED ? 'Complete' : 'Pending'), icon: <Truck className="w-4 h-4" /> },
+                  { label: 'Final Descent', status: viewingOrder.status === OrderStatus.DELIVERED ? 'Complete' : 'Pending', icon: <MapPin className="w-4 h-4" /> },
+                  { label: 'Node Verified', status: viewingOrder.status === OrderStatus.DELIVERED ? 'Complete' : 'Pending', icon: <CheckCircle className="w-4 h-4" /> }
+                ].map((step, idx) => (
+                  <div key={idx} className="flex items-center gap-6 relative z-10">
+                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
+                      step.status === 'Complete' ? 'bg-cyan-500 border-cyan-500 text-white' :
+                      step.status === 'Active' ? 'bg-[#0f172a] border-cyan-500 text-cyan-400 animate-pulse' :
+                      'bg-white/5 border-white/10 text-slate-600'
+                    }`}>
+                      {step.icon}
+                    </div>
+                    <div>
+                      <p className={`text-[10px] font-black uppercase tracking-widest ${
+                        step.status === 'Pending' ? 'text-slate-600' : 'text-white'
+                      }`}>{step.label}</p>
+                      <p className={`text-[9px] font-bold ${
+                        step.status === 'Active' ? 'text-cyan-400' : 'text-slate-500'
+                      }`}>{step.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 p-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/10 flex items-center gap-3">
+                <Navigation className="w-5 h-5 text-cyan-400" />
+                <div className="flex-1">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Current Sector</p>
+                  <p className="text-[11px] font-bold">Orbital Hub 04 - NeoTokyo Grid</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Order Management */}
+            <div className="md:w-2/3 p-10 flex flex-col overflow-y-auto scrollbar-hide">
+              <div className="flex justify-between items-start mb-10">
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Transmission Detail</p>
+                  <h2 className="text-3xl font-black text-white tracking-tighter">#{viewingOrder.id.toUpperCase()}</h2>
+                </div>
+                <button onClick={() => setViewingOrder(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="w-6 h-6" /></button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8 mb-12">
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <User className="w-2.5 h-2.5" /> Authorized Citizen
+                  </p>
+                  <p className="text-sm font-bold text-white">{viewingOrder.customerName}</p>
+                  <p className="text-xs text-slate-500 font-mono">{viewingOrder.phone}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <MapPin className="w-2.5 h-2.5" /> Uplink Node
+                  </p>
+                  <p className="text-sm font-bold text-white truncate">{viewingOrder.address}</p>
+                  <p className="text-xs text-slate-500 font-mono">LAT 35.6895 • LONG 139.6917</p>
+                </div>
+              </div>
+
+              <div className="mb-10">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 border-b border-white/5 pb-2">Hardware Manifest</h3>
+                <div className="space-y-4">
+                  {viewingOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 glass rounded-2xl border border-white/5 group hover:border-cyan-500/20 transition-all">
+                      <div className="flex items-center gap-4">
+                        <img src={item.image} className="w-12 h-12 rounded-xl object-cover border border-white/10" alt={item.name} />
+                        <div>
+                          <p className="text-sm font-black text-white group-hover:text-cyan-400 transition-colors">{item.name}</p>
+                          <div className="flex gap-2 mt-1">
+                            {item.selectedVariants && Object.entries(item.selectedVariants).map(([k, v]) => (
+                               <span key={k} className="text-[8px] font-black bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded uppercase">{v}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-white">${item.price * item.quantity}</p>
+                        <p className="text-[10px] text-slate-500 font-bold">{item.quantity} UNITS</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-auto pt-8 border-t border-white/10 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Credits Disbursed</p>
+                  <p className="text-3xl font-black text-white tracking-tighter">${viewingOrder.total}</p>
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Update Transmission Sync</p>
+                  <select 
+                    className="bg-[#0f172a] border border-cyan-500/30 text-[11px] font-black uppercase tracking-widest rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]"
+                    value={viewingOrder.status}
+                    onChange={(e) => {
+                      updateOrderStatus(viewingOrder.id, e.target.value as OrderStatus);
+                      setViewingOrder({...viewingOrder, status: e.target.value as OrderStatus});
+                    }}
+                  >
+                    <option value={OrderStatus.PENDING}>Pending</option>
+                    <option value={OrderStatus.PROCESSING}>Processing</option>
+                    <option value={OrderStatus.DELIVERED}>Delivered</option>
+                    <option value={OrderStatus.CANCELLED}>Cancelled</option>
+                  </select>
+                </div>
+              </div>
+              
+              {viewingOrder.status === OrderStatus.CANCELLED && (
+                <div className="mt-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 animate-in fade-in zoom-in duration-300">
+                  <AlertCircle className="w-5 h-5 text-rose-500" />
+                  <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest">Transmission Protocol Severed. Awaiting credit refund cycle.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
