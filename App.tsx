@@ -8,6 +8,8 @@ import AuthPage from './components/AuthPage';
 import AdminAuthPage from './components/AdminAuthPage';
 import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
+import SettingsPage from './components/SettingsPage';
+import ServicesPage from './components/ServicesPage';
 import { Product, CartItem, Order, OrderStatus, View, User } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
@@ -15,8 +17,9 @@ import {
   CheckCircle2, Search, Filter, Package, Cpu, 
   User as UserIcon, Settings, Heart, LayoutDashboard, 
   History, Shield, ShieldCheck, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut, Lock,
-  Wallet, Fingerprint, Activity, Key, Eye, EyeOff, AlertTriangle
+  Wallet, Fingerprint, Activity, Key, Eye, EyeOff, AlertTriangle, Plus, Edit3, TrendingUp
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const App: React.FC = () => {
   // --- State ---
@@ -51,9 +54,28 @@ const App: React.FC = () => {
     return orders.reduce((acc, o) => acc + o.total, 0);
   }, [orders]);
 
+  const citizenTier = useMemo(() => {
+    if (totalSpent > 5000) return { name: 'Ethereal', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' };
+    if (totalSpent > 2000) return { name: 'Vanguard', color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/30' };
+    if (totalSpent > 500) return { name: 'Citizen', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' };
+    return { name: 'Initiate', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/30' };
+  }, [totalSpent]);
+
+  // Mock spending data for Recharts
+  const spendingData = useMemo(() => {
+    return orders.slice(0, 7).reverse().map((o, i) => ({
+      name: `T-${orders.length - i}`,
+      credits: o.total
+    }));
+  }, [orders]);
+
   // --- Handlers ---
-  const handleLogin = (userData: User) => {
-    setUser(userData);
+  const handleLogin = (userData: any) => {
+    const userWithAddresses: User = {
+      ...userData,
+      savedAddresses: userData.savedAddresses || [userData.address || 'Neo-Tokyo Sector 4']
+    };
+    setUser(userWithAddresses);
     setView('home');
   };
 
@@ -118,9 +140,10 @@ const App: React.FC = () => {
     setSelectedProduct(p);
   };
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    alert("Identity parameters updated successfully.");
+  // --- Profile Specific Handlers ---
+  const updateProfileData = (field: keyof User, value: any) => {
+    if (!user) return;
+    setUser({ ...user, [field]: value });
   };
 
   // --- Views ---
@@ -178,7 +201,7 @@ const App: React.FC = () => {
               onClick={() => handleProductClick(p)}
             >
               <div className="relative aspect-square rounded-2xl overflow-hidden mb-6">
-                <img src={p.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={p.name} />
+                <img src={p.image} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
                 <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1">
                   <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                   <span className="text-[10px] font-bold">4.9</span>
@@ -333,7 +356,26 @@ const App: React.FC = () => {
             <div className="space-y-4">
               <input type="text" placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" />
               <input type="text" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" />
-              <textarea placeholder="Delivery Coordinates" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" rows={3} />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Coordinates Source</label>
+                <select 
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 mb-2"
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  value={formData.address}
+                >
+                  <option value="">Custom Coordinates...</option>
+                  {user?.savedAddresses.map((addr, idx) => (
+                    <option key={idx} value={addr}>{addr}</option>
+                  ))}
+                </select>
+                <textarea 
+                  placeholder="Delivery Coordinates" 
+                  value={formData.address} 
+                  onChange={(e) => setFormData({...formData, address: e.target.value})} 
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" 
+                  rows={3} 
+                />
+              </div>
             </div>
           </div>
 
@@ -430,20 +472,6 @@ const App: React.FC = () => {
   };
 
   const renderProfile = () => {
-    const [showPassword, setShowPassword] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    const handlePasswordChange = (e: React.FormEvent) => {
-      e.preventDefault();
-      alert("Neural password encryption successful. Uplink re-secured.");
-    };
-
-    const confirmAccountDeletion = () => {
-      if (window.confirm("FATAL ERROR: This will permanently erase your neural presence from PRIMER matrix. Proceed?")) {
-        handleLogout();
-      }
-    };
-
     return (
       <div className="max-w-7xl mx-auto px-6 py-32 animate-in fade-in duration-700">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -457,7 +485,10 @@ const App: React.FC = () => {
                 </div>
               </div>
               <h2 className="text-xl font-black">{user?.name}</h2>
-              <p className="text-slate-500 text-xs mt-1 uppercase tracking-widest font-bold">Citizen Unit #{user?.id.slice(0, 6).toUpperCase()}</p>
+              <div className={`mt-2 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${citizenTier.bg} ${citizenTier.color} ${citizenTier.border}`}>
+                {citizenTier.name} Tier
+              </div>
+              <p className="text-slate-500 text-[10px] mt-2 uppercase tracking-tighter font-bold">Citizen Unit #{user?.id.slice(0, 8).toUpperCase()}</p>
             </div>
 
             <div className="glass rounded-3xl p-2 border border-white/10 flex flex-col">
@@ -480,10 +511,10 @@ const App: React.FC = () => {
                 <Heart className="w-4 h-4" /> Memory Bank
               </button>
               <button 
-                onClick={() => setProfileTab('settings')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'settings' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+                onClick={() => setView('settings')}
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all text-slate-400 hover:text-white hover:bg-white/5`}
               >
-                <Settings className="w-4 h-4" /> System Parameters
+                <SettingsIcon className="w-4 h-4" /> System Parameters
               </button>
             </div>
 
@@ -529,7 +560,56 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="glass rounded-3xl p-8 border border-white/10">
+                {/* Spending Chart */}
+                <div className="glass rounded-[2.5rem] p-8 border border-white/10">
+                  <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-xl font-black flex items-center gap-2">
+                      <TrendingUp className="text-cyan-400 w-5 h-5" /> Spending Trajectory
+                    </h3>
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Recent Transmissions</div>
+                  </div>
+                  <div className="h-[200px] w-full">
+                    {orders.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={spendingData}>
+                          <defs>
+                            <linearGradient id="colorCredits" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <XAxis 
+                            dataKey="name" 
+                            stroke="#475569" 
+                            fontSize={10} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            dy={10}
+                          />
+                          <YAxis hide />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
+                            itemStyle={{ color: '#22d3ee', fontWeight: 'bold' }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="credits" 
+                            stroke="#22d3ee" 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill="url(#colorCredits)" 
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center border border-dashed border-white/10 rounded-2xl text-slate-600 font-bold text-xs">
+                        Awaiting initial transmissions for trajectory mapping...
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="glass rounded-[2.5rem] p-8 border border-white/10">
                   <h3 className="text-xl font-black mb-6">Recent Activity Hub</h3>
                   {orders.length > 0 ? (
                     <div className="space-y-4">
@@ -556,8 +636,8 @@ const App: React.FC = () => {
                     </div>
                   ) : (
                     <div className="text-center py-12">
-                      <p className="text-slate-500 italic">No recent transmissions detected in the sector.</p>
-                      <button onClick={() => setView('shop')} className="mt-4 text-cyan-400 text-sm font-bold flex items-center gap-2 mx-auto hover:gap-3 transition-all">
+                      <p className="text-slate-500 italic text-sm">No recent activity detected in the sector.</p>
+                      <button onClick={() => setView('shop')} className="mt-6 text-cyan-400 text-sm font-bold flex items-center gap-2 mx-auto hover:gap-3 transition-all">
                         Initialize First Order <ArrowRight className="w-4 h-4" />
                       </button>
                     </div>
@@ -582,7 +662,7 @@ const App: React.FC = () => {
                           <div>
                             <p className="font-mono text-cyan-400 text-lg mb-1">#{o.id.toUpperCase()}</p>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">{o.date} • {o.items.length} Modules</p>
-                            <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1.5 font-bold">
+                            <p className="text-[10px] text-slate-500 mt-2 flex items-center gap-1.5 font-bold">
                               <MapPin className="w-2.5 h-2.5" /> {o.address}
                             </p>
                           </div>
@@ -612,11 +692,11 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="glass rounded-3xl p-12 text-center border border-white/10">
-                    <History className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                    <p className="text-slate-500">Archive is currently empty.</p>
-                    <button onClick={() => setView('shop')} className="mt-6 px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-all">
-                      Browse Inventory
+                  <div className="glass rounded-[3rem] p-16 text-center border border-white/10">
+                    <History className="w-16 h-16 text-slate-800 mx-auto mb-6" />
+                    <p className="text-slate-500 mb-8">The archive is vacant. No telemetry found.</p>
+                    <button onClick={() => setView('shop')} className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-black uppercase text-xs transition-all shadow-lg shadow-cyan-500/20">
+                      Access Catalog
                     </button>
                   </div>
                 )}
@@ -653,151 +733,14 @@ const App: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="glass rounded-3xl p-12 text-center border border-white/10">
-                    <Heart className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-                    <p className="text-slate-500">Memory bank is vacant. Start cataloging gear.</p>
-                    <button onClick={() => setView('shop')} className="mt-6 px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-all">
+                  <div className="glass rounded-[3rem] p-16 text-center border border-white/10">
+                    <Heart className="w-16 h-16 text-slate-800 mx-auto mb-6" />
+                    <p className="text-slate-500 mb-8">Memory bank is vacant. Start cataloging hardware.</p>
+                    <button onClick={() => setView('shop')} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black uppercase transition-all">
                       Browse Grid
                     </button>
                   </div>
                 )}
-              </div>
-            )}
-
-            {profileTab === 'settings' && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <h3 className="text-2xl font-black">System Parameters</h3>
-                
-                {/* Identity Section */}
-                <div className="glass rounded-3xl p-8 border border-white/10">
-                  <div className="flex items-center gap-2 mb-6 text-cyan-400">
-                    <UserIcon className="w-4 h-4" />
-                    <h4 className="text-xs font-black uppercase tracking-widest">Biological Data</h4>
-                  </div>
-                  <form onSubmit={handleUpdateProfile} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Universal Designation</label>
-                        <div className="relative">
-                          <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                          <input 
-                            type="text" 
-                            defaultValue={user?.name}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-cyan-500 transition-colors"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Comms Uplink (Phone)</label>
-                        <div className="relative">
-                          <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                          <input 
-                            type="text" 
-                            defaultValue={user?.phone}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-cyan-500 transition-colors"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Primary Deployment Node (Address)</label>
-                      <div className="relative">
-                        <MapPin className="absolute left-4 top-4 w-4 h-4 text-slate-500" />
-                        <textarea 
-                          defaultValue={user?.address}
-                          rows={3}
-                          className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-cyan-500 transition-colors"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                      <button 
-                        type="submit"
-                        className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs"
-                      >
-                        Commit Changes
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Security Section */}
-                <div className="glass rounded-3xl p-8 border border-white/10">
-                  <div className="flex items-center gap-2 mb-6 text-purple-400">
-                    <Shield className="w-4 h-4" />
-                    <h4 className="text-xs font-black uppercase tracking-widest">Security Protocol</h4>
-                  </div>
-                  <form onSubmit={handlePasswordChange} className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Current Encryption Key</label>
-                        <div className="relative">
-                          <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                          <input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-12 focus:outline-none focus:border-purple-500 transition-colors"
-                          />
-                          <button 
-                            type="button" 
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-purple-400 transition-colors"
-                          >
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">New Neural Key</label>
-                          <div className="relative">
-                            <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                            <input 
-                              type="password"
-                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-purple-500 transition-colors"
-                            />
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Sync Key</label>
-                          <div className="relative">
-                            <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                            <input 
-                              type="password"
-                              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 focus:outline-none focus:border-purple-500 transition-colors"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                      <button 
-                        type="submit"
-                        className="px-8 py-3 glass border border-purple-500/30 text-purple-400 hover:bg-purple-500/10 rounded-2xl font-black transition-all shadow-xl shadow-purple-500/10 uppercase tracking-widest text-xs"
-                      >
-                        Refresh Encryption
-                      </button>
-                    </div>
-                  </form>
-                </div>
-
-                {/* Danger Zone */}
-                <div className="glass rounded-3xl p-8 border border-red-500/20 bg-red-500/5">
-                  <div className="flex items-center gap-2 mb-4 text-red-400">
-                    <AlertTriangle className="w-5 h-5" />
-                    <h4 className="text-sm font-black uppercase tracking-widest">Danger Zone</h4>
-                  </div>
-                  <p className="text-slate-500 text-sm mb-6 max-w-xl">Termination will result in permanent loss of all credits, order history, and neural wishlist data. This action is irreversible once the uplink is severed.</p>
-                  <button 
-                    onClick={confirmAccountDeletion}
-                    className="px-8 py-3 bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl text-xs font-black transition-all uppercase tracking-widest"
-                  >
-                    Terminate Identity Protocol
-                  </button>
-                </div>
               </div>
             )}
           </div>
@@ -806,19 +749,81 @@ const App: React.FC = () => {
     );
   };
 
-  const renderOrderConfirmation = () => (
-    <div className="min-h-[80vh] flex items-center justify-center p-6 animate-in zoom-in duration-500">
-      <div className="glass rounded-[3rem] p-12 border border-white/10 text-center max-w-lg shadow-2xl">
-        <div className="w-24 h-24 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce"><CheckCircle2 className="w-12 h-12 text-cyan-400" /></div>
-        <h1 className="text-4xl font-black mb-4">Transmission Success</h1>
-        <p className="text-slate-400 mb-8">Your order has been encoded into the blockchain. Reference: #{orders[0]?.id.toUpperCase()}</p>
-        <div className="flex flex-col gap-4">
-          <button onClick={() => setView('profile')} className="w-full py-4 glass border border-white/10 hover:bg-white/5 rounded-2xl font-bold transition-all">View Order History</button>
-          <button onClick={() => setView('home')} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl font-bold shadow-lg shadow-cyan-500/20 transition-all">Return to Nexus</button>
+  // Standard lucide icons for profile tab
+  const SettingsIcon = ({ className }: { className?: string }) => (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className={className}
+    >
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+
+  // --- Fix for missing renderOrderConfirmation ---
+  const renderOrderConfirmation = () => {
+    const lastOrder = orders[0];
+    if (!lastOrder) return null;
+
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-32 text-center animate-in zoom-in duration-500">
+        <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-green-500/30">
+          <CheckCircle2 className="w-12 h-12 text-green-400" />
+        </div>
+        <h1 className="text-5xl font-black mb-4 uppercase">Uplink Successful</h1>
+        <p className="text-slate-400 text-lg mb-12 font-medium">Transmission ID: <span className="text-cyan-400 font-mono">#{lastOrder.id.toUpperCase()}</span> has been broadcast to the distribution grid.</p>
+        
+        <div className="glass rounded-[3rem] p-8 border border-white/10 text-left mb-12 max-w-2xl mx-auto shadow-2xl">
+          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-8">Manifest Overview</h3>
+          <div className="space-y-4 mb-10">
+            {lastOrder.items.map(item => (
+              <div key={item.id} className="flex justify-between items-center text-sm">
+                <span className="font-bold text-slate-300">{item.name} <span className="text-slate-600 font-black ml-2 text-[10px]">x{item.quantity}</span></span>
+                <span className="font-black text-cyan-400">${item.price * item.quantity}</span>
+              </div>
+            ))}
+          </div>
+          <div className="pt-8 border-t border-white/5 flex justify-between items-end">
+            <div>
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Credits Disbursed</p>
+              <p className="text-3xl font-black text-white tracking-tighter">${lastOrder.total}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Sync Status</p>
+              <div className="flex items-center gap-2 text-green-400">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black uppercase">Complete</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+          <button 
+            onClick={() => setView('shop')} 
+            className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs"
+          >
+            Return to Catalog
+          </button>
+          <button 
+            onClick={() => {
+              setProfileTab('orders');
+              setView('profile');
+            }} 
+            className="px-10 py-4 glass hover:bg-white/10 rounded-2xl font-black transition-all border border-white/10 uppercase tracking-widest text-xs text-slate-400"
+          >
+            View Order Ledger
+          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200">
@@ -836,6 +841,8 @@ const App: React.FC = () => {
         {view === 'cart' && renderCart()}
         {view === 'checkout' && renderCheckout()}
         {view === 'profile' && renderProfile()}
+        {view === 'settings' && <SettingsPage user={user} onUpdateUser={updateProfileData} />}
+        {view === 'services' && <ServicesPage />}
         {view === 'about' && <AboutPage />}
         {view === 'contact' && <ContactPage />}
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
@@ -855,14 +862,14 @@ const App: React.FC = () => {
         onToggleWishlist={toggleWishlist} 
       />
       <footer className="glass border-t border-white/10 py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-8">
+        <div className="max-w-7xl auto flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex items-center gap-2">
             <Cpu className="text-cyan-500 w-6 h-6" />
             <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
           </div>
           <div className="flex gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest">
-            <button onClick={() => setView('about')} className="hover:text-cyan-400">About</button>
-            <button onClick={() => setView('contact')} className="hover:text-cyan-400">Contact</button>
+            <button onClick={() => setView('about')} className="hover:text-cyan-400 transition-colors">About</button>
+            <button onClick={() => setView('contact')} className="hover:text-cyan-400 transition-colors">Contact</button>
             <button 
               onClick={() => setView('admin-auth')}
               className="hover:text-purple-400 transition-colors flex items-center gap-1.5 opacity-40 hover:opacity-100"

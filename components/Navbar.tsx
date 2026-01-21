@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package, LogIn, Info, MessageCircle, Search } from 'lucide-react';
+import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package, LogIn, Info, MessageCircle, Search, Settings, Wrench } from 'lucide-react';
 import { View, User as UserType } from '../types';
 
 interface NavbarProps {
@@ -61,6 +61,12 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
           >
             <Package className="w-4 h-4" /> Products
           </button>
+          <button 
+            onClick={() => setView('services')}
+            className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'services' ? 'text-cyan-400' : ''}`}
+          >
+            <Wrench className="w-4 h-4" /> Services
+          </button>
           {user?.isAdmin && (
             <button 
               onClick={() => setView('admin')}
@@ -87,6 +93,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
               </span>
             )}
           </button>
+          
+          <button 
+            onClick={() => setView('settings')}
+            className={`p-2 hover:bg-white/5 rounded-full transition-colors group ${currentView === 'settings' ? 'text-cyan-400 bg-white/5' : 'text-slate-300'}`}
+          >
+            <Settings className="w-5 h-5 group-hover:text-cyan-400" />
+          </button>
+
           <button 
             onClick={() => setView(user ? 'profile' : 'auth')}
             className={`p-2 hover:bg-white/5 rounded-full transition-colors group flex items-center gap-2 ${currentView === 'profile' || currentView === 'auth' ? 'text-cyan-400 bg-white/5' : 'text-slate-300'}`}

@@ -1,3 +1,4 @@
+
 export enum OrderStatus {
   PENDING = 'Pending',
   PROCESSING = 'Processing',
@@ -37,7 +38,8 @@ export interface User {
   email: string;
   phone: string;
   address: string;
+  savedAddresses: string[];
   isAdmin: boolean;
 }
 
-export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact';
+export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services';

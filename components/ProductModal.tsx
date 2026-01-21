@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, ShoppingBag, Star, StarHalf, ShieldCheck, Zap, Package, Heart, Minus, Plus, Bot, Sparkles, Box, Maximize, BarChart3 } from 'lucide-react';
+// Added Maximize to the lucide-react imports to fix the "Cannot find name 'Maximize'" error on line 170.
+import { X, ShoppingBag, Star, ShieldCheck, Zap, Heart, Minus, Plus, Bot, Sparkles, Box, Camera, Smartphone, Layers, HelpCircle, Info, Move3d, Maximize } from 'lucide-react';
 import { Product, User } from '../types';
 import { getAIRecommendations } from '../services/geminiService';
 
@@ -15,7 +16,7 @@ interface ProductModalProps {
   onToggleWishlist: (productId: string) => void;
 }
 
-// Fix for model-viewer custom element typing in JSX by defining a typed alias.
+// Typed alias for model-viewer to bypass intrinsic element errors in JSX
 const ModelViewer = 'model-viewer' as any;
 
 const ProductModal: React.FC<ProductModalProps> = ({ 
@@ -32,20 +33,32 @@ const ProductModal: React.FC<ProductModalProps> = ({
   const [aiRecs, setAiRecs] = useState<Product[]>([]);
   const [isLoadingRecs, setIsLoadingRecs] = useState(false);
   const [showAR, setShowAR] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [showARHint, setShowARHint] = useState(false);
 
   const isWishlisted = product ? wishlist.includes(product.id) : false;
 
-  const relatedProducts = useMemo(() => {
+  // Simulate products frequently added to cart together
+  const viewedTogether = useMemo(() => {
     if (!product) return [];
+    const aiRecIds = aiRecs.map(r => r.id);
     return allProducts
-      .filter(p => p.category === product.category && p.id !== product.id)
+      .filter(p => p.id !== product.id && !aiRecIds.includes(p.id))
+      // Prioritize same category, then randomize others
+      .sort((a, b) => {
+        if (a.category === product.category && b.category !== product.category) return -1;
+        if (a.category !== product.category && b.category === product.category) return 1;
+        return 0.5 - Math.random();
+      })
       .slice(0, 4);
-  }, [product, allProducts]);
+  }, [product, allProducts, aiRecs]);
 
   useEffect(() => {
     if (product) {
       setQuantity(1);
       setShowAR(false);
+      setIsScanning(false);
+      setShowARHint(false);
       fetchRecommendations();
     }
   }, [product?.id]);
@@ -56,6 +69,15 @@ const ProductModal: React.FC<ProductModalProps> = ({
     const recs = await getAIRecommendations(product, allProducts, wishlist);
     setAiRecs(recs);
     setIsLoadingRecs(false);
+  };
+
+  const handleEnter3D = () => {
+    setIsScanning(true);
+    // Simulate a neural scan
+    setTimeout(() => {
+      setIsScanning(false);
+      setShowAR(true);
+    }, 1500);
   };
 
   if (!product) return null;
@@ -77,16 +99,30 @@ const ProductModal: React.FC<ProductModalProps> = ({
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-6 right-6 z-20 p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
+          className="absolute top-6 right-6 z-[110] p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors border border-white/10"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* Product Image Section */}
-        <div className="md:w-5/12 relative bg-white/5 aspect-square md:aspect-auto">
+        {/* Product Image / 3D Viewer Section */}
+        <div className="md:w-5/12 relative bg-[#010409] aspect-square md:aspect-auto flex flex-col items-center justify-center overflow-hidden">
+          {isScanning && (
+            <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[#020617]/60 backdrop-blur-sm animate-in fade-in duration-300">
+              <div className="relative w-48 h-48 flex items-center justify-center">
+                <div className="absolute inset-0 border-2 border-cyan-500/20 rounded-full animate-ping" />
+                <div className="absolute inset-2 border border-cyan-500/40 rounded-full animate-spin duration-[2000ms]" />
+                <div className="absolute inset-0 border-t-4 border-cyan-500 rounded-full animate-spin" />
+                <Camera className="w-12 h-12 text-cyan-400 animate-pulse" />
+                <div className="absolute w-full h-0.5 bg-cyan-400/50 shadow-[0_0_15px_rgba(34,211,238,0.5)] top-1/2 -translate-y-1/2 animate-[bounce_2s_infinite]" />
+              </div>
+              <p className="mt-8 text-[11px] font-black uppercase tracking-[0.4em] text-cyan-400 animate-pulse">
+                Analyzing Mesh Integrity...
+              </p>
+            </div>
+          )}
+
           {showAR && product.arModel ? (
-            <div className="w-full h-full relative group">
-              {/* Fix: Using ModelViewer alias to avoid intrinsic element type errors */}
+            <div className="w-full h-full relative group animate-in fade-in duration-1000">
               <ModelViewer
                 src={product.arModel}
                 ar
@@ -94,250 +130,296 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 camera-controls
                 auto-rotate
                 shadow-intensity="1"
+                exposure="1"
+                environment-image="neutral"
                 className="w-full h-full"
+                style={{ '--progress-bar-color': '#06b6d4', width: '100%', height: '100%' }}
               >
-                <button slot="ar-button" className="absolute bottom-6 right-6 bg-cyan-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-cyan-400/50 shadow-lg shadow-cyan-500/20">
-                  Activate AR Overlay
+                <div slot="poster" className="absolute inset-0 flex items-center justify-center bg-[#010409]">
+                   <div className="animate-pulse text-cyan-500/50">CALIBRATING SPATIAL GRID...</div>
+                </div>
+                
+                <button 
+                  slot="ar-button" 
+                  className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-cyan-400/50 shadow-[0_0_25px_rgba(34,211,238,0.3)] flex items-center gap-3 transition-all transform hover:scale-105 active:scale-95 z-40"
+                >
+                  <Smartphone className="w-5 h-5" />
+                  Project into Sector
                 </button>
               </ModelViewer>
-              <button 
-                onClick={() => setShowAR(false)}
-                className="absolute top-6 left-6 z-20 p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10 text-white text-[10px] font-bold px-3 py-1.5 flex items-center gap-2"
-              >
-                <Maximize className="w-3 h-3 rotate-45" /> EXIT 3D MODE
-              </button>
+              
+              <div className="absolute top-6 left-6 z-20 flex flex-col gap-2">
+                <button 
+                  onClick={() => setShowAR(false)}
+                  className="p-2 bg-black/40 backdrop-blur-md rounded-xl border border-white/10 text-white text-[10px] font-bold px-4 py-2 flex items-center gap-2 hover:bg-black/60 transition-colors"
+                >
+                  <X className="w-3 h-3" /> DISCONNECT LINK
+                </button>
+                <div className="px-3 py-1.5 glass rounded-lg border border-cyan-500/20 text-[9px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+                  Live Spatial Stream
+                </div>
+              </div>
+
+              {/* Manipulation Guide Tooltip */}
+              <div className="absolute bottom-6 right-6 z-20">
+                <div className="relative group">
+                  <div className="absolute bottom-full right-0 mb-3 w-48 glass p-4 rounded-2xl border border-white/10 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 pointer-events-none">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-2">Spatial Control</p>
+                    <ul className="space-y-2 text-[9px] text-slate-400 font-bold uppercase tracking-tighter">
+                      <li className="flex items-center gap-2"><Move3d className="w-3 h-3 text-white" /> Drag to Rotate</li>
+                      <li className="flex items-center gap-2"><Maximize className="w-3 h-3 text-white" /> Pinch to Scale</li>
+                      <li className="flex items-center gap-2"><Info className="w-3 h-3 text-white" /> Double tap to Reset</li>
+                    </ul>
+                  </div>
+                  <button className="p-3 bg-white/10 backdrop-blur-md rounded-full border border-white/20 text-white hover:bg-cyan-600/20 transition-all">
+                    <HelpCircle className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
-            <>
+            <div className="w-full h-full relative overflow-hidden group">
               <img 
                 src={product.image} 
                 alt={product.name} 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/60 to-transparent pointer-events-none md:hidden" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-[#020617]/20 to-transparent pointer-events-none" />
               
-              <div className="absolute bottom-6 left-6 flex flex-col gap-2">
-                <span className="w-fit bg-cyan-500/20 backdrop-blur-md border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
-                  {product.category}
+              <div className="absolute bottom-8 left-8 right-8 flex flex-col gap-4 animate-in slide-in-from-bottom-6 duration-700">
+                <span className="w-fit bg-cyan-500/10 backdrop-blur-md border border-cyan-500/30 px-3 py-1 rounded-full text-[10px] font-black text-cyan-400 uppercase tracking-widest">
+                  {product.category} Segment
                 </span>
                 
                 {product.arModel && (
-                  <button 
-                    onClick={() => setShowAR(true)}
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2.5 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all group/ar"
-                  >
-                    <Box className="w-4 h-4 text-cyan-400 group-hover/ar:rotate-12 transition-transform" />
-                    View in Neural AR
-                  </button>
+                  <div className="relative group/ar-btn">
+                    <button 
+                      onClick={handleEnter3D}
+                      className="w-full flex items-center justify-center gap-4 bg-white/5 hover:bg-cyan-600/20 backdrop-blur-md border border-cyan-500/30 px-6 py-4 rounded-2xl text-[12px] font-black text-white uppercase tracking-widest transition-all shadow-lg hover:shadow-cyan-500/20"
+                    >
+                      <div className="relative">
+                        <Box className="w-5 h-5 text-cyan-400 group-hover/ar-btn:scale-110 transition-transform" />
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                      </div>
+                      Enter Spatial Reality (3D/AR)
+                    </button>
+                    
+                    {/* AR Guide Hint */}
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 glass p-4 rounded-2xl border border-cyan-500/20 opacity-0 group-hover/ar-btn:opacity-100 transition-all transform translate-y-2 group-hover/ar-btn:translate-y-0 pointer-events-none text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Smartphone className="w-4 h-4 text-cyan-400" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">AR Protocol</span>
+                      </div>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase leading-relaxed tracking-tight">
+                        Project this unit into your physical environment. Supports WebXR & Android/iOS Scene Viewer.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
 
         {/* Product Info Section */}
-        <div className="md:w-7/12 p-8 md:p-10 flex flex-col overflow-y-auto">
+        <div className="md:w-7/12 p-8 md:p-12 flex flex-col overflow-y-auto bg-gradient-to-br from-transparent to-[#0f172a]/40 scrollbar-hide">
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center gap-0.5">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className={`w-3 h-3 ${i < 4 ? 'text-yellow-500 fill-yellow-500' : 'text-slate-600'}`} />
+                  <Star key={i} className={`w-3.5 h-3.5 ${i < 4 ? 'text-yellow-500 fill-yellow-500' : 'text-slate-700'}`} />
                 ))}
               </div>
-              <span className="text-[10px] text-slate-500 font-bold">4.9 (124 reviews)</span>
+              <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Approved Protocol • 4.9 Rating</span>
             </div>
             
-            <h2 className="text-3xl font-black mb-3 gradient-text leading-tight">
+            <h2 className="text-4xl md:text-5xl font-black mb-6 gradient-text leading-tight tracking-tighter">
               {product.name}
             </h2>
             
-            <div className="mb-6">
-              <p className="text-slate-400 text-sm leading-relaxed mb-6">
+            <div className="mb-10">
+              <p className="text-slate-400 text-sm md:text-base leading-relaxed mb-8 font-medium">
                 {product.description}
               </p>
               
-              {/* Star Rating System Section */}
-              <div className="p-6 bg-white/5 rounded-[2rem] border border-white/10 flex flex-col md:flex-row gap-8 items-center mb-8">
-                <div className="text-center md:border-r md:border-white/10 md:pr-8">
-                  <div className="text-4xl font-black text-white mb-1">4.5</div>
-                  <div className="flex items-center justify-center gap-1 mb-2">
-                    {[...Array(4)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
+              <div className="p-8 glass rounded-[2.5rem] border border-white/5 flex flex-col lg:flex-row gap-10 items-center mb-10 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-cyan-500/5 to-transparent opacity-50" />
+                <div className="text-center lg:border-r lg:border-white/10 lg:pr-10 z-10 shrink-0">
+                  <div className="text-5xl font-black text-white mb-2 tracking-tighter">4.9</div>
+                  <div className="flex items-center justify-center gap-1 mb-3">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-5 h-5 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.4)]" />
                     ))}
-                    <StarHalf className="w-4 h-4 text-yellow-500 fill-yellow-500 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)]" />
                   </div>
-                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Rating</div>
+                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">User Telemetry</div>
                 </div>
 
-                <div className="flex-1 w-full space-y-2">
+                <div className="flex-1 w-full space-y-3 z-10">
                   {[
-                    { stars: 5, percent: 78 },
-                    { stars: 4, percent: 15 },
-                    { stars: 3, percent: 4 },
-                    { stars: 2, percent: 2 },
-                    { stars: 1, percent: 1 },
-                  ].map((row) => (
-                    <div key={row.stars} className="flex items-center gap-3">
-                      <span className="text-[10px] font-bold text-slate-500 w-2">{row.stars}</span>
-                      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    { label: 'Neural Sync', value: 98, color: 'bg-cyan-400' },
+                    { label: 'Core Integrity', value: 92, color: 'bg-blue-400' },
+                    { label: 'Thermal Shield', value: 85, color: 'bg-purple-400' },
+                  ].map((stat) => (
+                    <div key={stat.label} className="space-y-1.5">
+                      <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        <span>{stat.label}</span>
+                        <span className="text-white">{stat.value}%</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-cyan-500/50 rounded-full" 
-                          style={{ width: `${row.percent}%` }}
+                          className={`h-full ${stat.color} opacity-70 rounded-full transition-all duration-1000`} 
+                          style={{ width: `${stat.value}%` }}
                         />
                       </div>
-                      <span className="text-[9px] font-bold text-slate-600 w-6">{row.percent}%</span>
-                    </div>
-                  ))}
-                  <div className="pt-2 flex items-center gap-2 text-[9px] text-slate-500 font-bold uppercase tracking-tight">
-                    <BarChart3 className="w-3 h-3 text-cyan-400" />
-                    Synchronized with 482 telemetry logs
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center gap-3">
-                <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                <div>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">Warranty</p>
-                  <p className="text-[11px] font-bold">2 Year Neural</p>
-                </div>
-              </div>
-              <div className="bg-white/5 rounded-2xl p-3 border border-white/5 flex items-center gap-3">
-                <Zap className="w-4 h-4 text-purple-400" />
-                <div>
-                  <p className="text-[9px] font-bold text-slate-500 uppercase">Processing</p>
-                  <p className="text-[11px] font-bold">Quantum Core</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Related Products Section */}
-            {relatedProducts.length > 0 && (
-              <div className="mb-10">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Package className="w-3.5 h-3.5" /> Synchronized Hardware
-                </h3>
-                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                  {relatedProducts.map(rp => (
-                    <div 
-                      key={rp.id}
-                      onClick={() => onSelectProduct(rp)}
-                      className="min-w-[140px] group/item cursor-pointer glass p-2 rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-all hover:-translate-y-1"
-                    >
-                      <div className="aspect-square rounded-xl overflow-hidden mb-2">
-                        <img src={rp.image} alt={rp.name} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
-                      </div>
-                      <h4 className="text-[11px] font-bold truncate mb-1 group-hover/item:text-cyan-400 transition-colors">{rp.name}</h4>
-                      <p className="text-[10px] font-black text-slate-400">${rp.price}</p>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* AI Recommendations Section */}
-            <div className="mb-8 p-6 bg-purple-500/5 rounded-[2rem] border border-purple-500/10 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Bot className="w-16 h-16 text-purple-400" />
+            <div className="grid grid-cols-2 gap-4 mb-10">
+              <div className="bg-white/5 rounded-2xl p-5 border border-white/5 flex items-center gap-4 hover:border-cyan-500/20 transition-colors group">
+                <ShieldCheck className="w-6 h-6 text-cyan-400 group-hover:scale-110 transition-transform" />
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nexus Guard</p>
+                  <p className="text-[11px] font-black">Lifetime Warranty</p>
+                </div>
+              </div>
+              <div className="bg-white/5 rounded-2xl p-5 border border-white/5 flex items-center gap-4 hover:border-purple-500/20 transition-colors group">
+                <Zap className="w-6 h-6 text-purple-400 group-hover:scale-110 transition-transform" />
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Transmission</p>
+                  <p className="text-[11px] font-black">Quantum Delivery</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-12 p-8 bg-purple-500/5 rounded-[3rem] border border-purple-500/10 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-all duration-700">
+                <Bot className="w-32 h-32 text-purple-400 rotate-12" />
               </div>
               
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-black text-purple-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="relative">
-                      <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                    </span>
-                    AI Recommended For You
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-[11px] font-black text-purple-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                    <Sparkles className="w-4 h-4 animate-pulse" />
+                    Zenith Intelligent Pairings
                   </h3>
-                  <span className="text-[8px] font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/20">
-                    ZENITH INTELLIGENCE
-                  </span>
+                  <div className="text-[9px] font-black bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full border border-purple-500/20 tracking-widest uppercase">
+                    Core Match Found
+                  </div>
                 </div>
 
                 {isLoadingRecs ? (
                   <div className="flex gap-4 py-2">
                     {[1, 2, 3].map(i => (
-                      <div key={i} className="min-w-[120px] h-32 bg-white/5 rounded-2xl animate-pulse" />
+                      <div key={i} className="min-w-[140px] h-40 bg-white/5 rounded-2xl animate-pulse" />
                     ))}
                   </div>
                 ) : aiRecs.length > 0 ? (
-                  <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="flex gap-5 overflow-x-auto pb-4 scrollbar-hide">
                     {aiRecs.map(rp => (
                       <div 
                         key={rp.id}
                         onClick={() => onSelectProduct(rp)}
-                        className="min-w-[130px] group/rec cursor-pointer glass p-2 rounded-2xl border border-white/10 hover:border-purple-500/50 transition-all hover:-translate-y-1"
+                        className="min-w-[160px] group/rec cursor-pointer glass p-4 rounded-3xl border border-white/5 hover:border-purple-500/50 transition-all hover:-translate-y-2"
                       >
-                        <div className="aspect-square rounded-xl overflow-hidden mb-2">
-                          <img src={rp.image} alt={rp.name} className="w-full h-full object-cover group-hover/rec:scale-110 transition-transform duration-500" />
+                        <div className="aspect-square rounded-2xl overflow-hidden mb-4">
+                          <img src={rp.image} alt={rp.name} className="w-full h-full object-cover group-hover/rec:scale-110 transition-transform duration-700" />
                         </div>
-                        <h4 className="text-[10px] font-black truncate mb-1 group-hover/rec:text-purple-400 transition-colors">{rp.name}</h4>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[10px] font-black text-slate-400">${rp.price}</p>
-                          <span className="text-[8px] text-purple-400/70 font-bold uppercase">{rp.category}</span>
-                        </div>
+                        <h4 className="text-[11px] font-black truncate mb-1 group-hover/rec:text-purple-400 transition-colors uppercase tracking-tight">{rp.name}</h4>
+                        <p className="text-[12px] font-black text-slate-400 tracking-tighter">${rp.price}</p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-500 italic">Recalibrating neural filters for your profile...</p>
+                  <p className="text-[11px] text-slate-500 italic font-medium">Calibrating next-gen recommendations for your profile...</p>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mb-6">
-              <span className="relative flex h-2 w-2">
+            {/* Viewed Together Section */}
+            <div className="mb-12 animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300">
+              <div className="flex items-center justify-between mb-6 px-2">
+                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-cyan-400" />
+                  Frequently Synced Modules
+                </h3>
+                <div className="flex items-center gap-2">
+                   <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />
+                   <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Sector Data Match</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {viewedTogether.map(p => (
+                  <div 
+                    key={p.id}
+                    onClick={() => onSelectProduct(p)}
+                    className="glass p-3 rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-all cursor-pointer group/vt"
+                  >
+                    <div className="aspect-square rounded-xl overflow-hidden mb-3">
+                      <img src={p.image} alt={p.name} className="w-full h-full object-cover group-hover/vt:scale-110 transition-transform duration-500" />
+                    </div>
+                    <h4 className="text-[10px] font-black uppercase tracking-tight truncate mb-1 group-hover/vt:text-cyan-400 transition-colors">{p.name}</h4>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black text-slate-400 tracking-tighter">${p.price}</span>
+                      <Plus className="w-3.5 h-3.5 text-slate-600 group-hover/vt:text-cyan-400 transition-colors" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mb-12">
+              <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
               </span>
-              <span className={`text-[10px] font-bold ${product.stock < 10 ? 'text-red-400' : 'text-green-400'}`}>
-                {product.stock} units currently in distribution grid
+              <span className={`text-[12px] font-black uppercase tracking-widest ${product.stock < 10 ? 'text-red-400' : 'text-green-400'}`}>
+                {product.stock} units identified in sector grid
               </span>
             </div>
           </div>
 
-          <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-white/10">
+          <div className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-10 pt-10 border-t border-white/10">
             <div className="flex flex-col">
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-1">Price Unit</p>
-              <p className="text-3xl font-black">${product.price}</p>
+              <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">Authorization Fee</p>
+              <p className="text-5xl font-black tracking-tighter text-white">${product.price}</p>
             </div>
             
-            <div className="flex-1 w-full flex flex-wrap sm:flex-nowrap gap-3 items-center">
-              {/* Quantity Selector */}
-              <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-1 gap-1">
+            <div className="flex-1 w-full flex flex-wrap sm:flex-nowrap gap-5 items-center">
+              <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl p-2 gap-3">
                 <button 
                   onClick={() => handleQuantityChange(-1)}
-                  className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30"
+                  className="w-12 h-12 flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30"
                   disabled={quantity <= 1}
                 >
-                  <Minus className="w-4 h-4" />
+                  <Minus className="w-5 h-5" />
                 </button>
-                <div className="w-10 text-center font-bold text-sm">
+                <div className="w-10 text-center font-black text-xl">
                   {quantity}
                 </div>
                 <button 
                   onClick={() => handleQuantityChange(1)}
-                  className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30"
+                  className="w-12 h-12 flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors disabled:opacity-30"
                   disabled={quantity >= product.stock}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="flex-1 flex gap-2">
+              <div className="flex-1 flex gap-4">
                 {user && (
                   <button 
                     onClick={() => onToggleWishlist(product.id)}
-                    className={`p-4 rounded-2xl border transition-all flex items-center justify-center group ${
+                    className={`p-5 rounded-2xl border transition-all flex items-center justify-center group ${
                       isWishlisted 
-                      ? 'bg-rose-500/20 border-rose-500/50 text-rose-500' 
+                      ? 'bg-rose-500/10 border-rose-500/50 text-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.2)]' 
                       : 'glass border-white/10 text-slate-400 hover:text-rose-400 hover:border-rose-400/50'
                     }`}
-                    title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
                   >
-                    <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 ${isWishlisted ? 'fill-current' : ''}`} />
+                    <Heart className={`w-7 h-7 transition-transform group-hover:scale-110 ${isWishlisted ? 'fill-current' : ''}`} />
                   </button>
                 )}
                 
@@ -346,10 +428,10 @@ const ProductModal: React.FC<ProductModalProps> = ({
                     onAddToCart(product, quantity);
                     onClose();
                   }}
-                  className="flex-1 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-bold transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-3 group"
+                  className="flex-1 py-5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-[0_0_30px_rgba(34,211,238,0.3)] flex items-center justify-center gap-4 group active:scale-95"
                 >
-                  <ShoppingBag className="w-4 h-4 transition-transform group-hover:rotate-12" />
-                  Acquire Item
+                  <ShoppingBag className="w-6 h-6 transition-transform group-hover:rotate-12" />
+                  ACQUIRE HARDWARE
                 </button>
               </div>
             </div>
