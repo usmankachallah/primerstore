@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { X, ShoppingBag, Star, ShieldCheck, Zap, Heart, Minus, Plus, Bot, Sparkles, Box, Camera, Smartphone, Layers, HelpCircle, Info, Move3d, Maximize, ChevronDown, ChevronUp, Cpu, Settings2, Activity } from 'lucide-react';
+import { X, ShoppingBag, Star, ShieldCheck, Zap, Heart, Minus, Plus, Bot, Sparkles, Box, Camera, Smartphone, Layers, HelpCircle, Info, Move3d, Maximize, ChevronDown, ChevronUp, Cpu, Settings2, Activity, Terminal } from 'lucide-react';
 import { Product, User } from '../types';
 import { getAIRecommendations } from '../geminiService';
 
@@ -283,29 +283,62 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 {product.description}
               </p>
               
-              {/* Unit Specifications Collapsible */}
-              {product.techSpecs && (
+              {/* UNIT SPECIFICATIONS (Collapsible) */}
+              {(product.techSpecs || product.arModel) && (
                 <div className="mb-10">
                   <button 
                     onClick={() => setIsSpecsOpen(!isSpecsOpen)}
-                    className="w-full flex items-center justify-between p-5 glass rounded-2xl border border-white/5 hover:bg-white/5 transition-colors group/specs"
+                    className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all group/specs ${
+                      isSpecsOpen ? 'bg-cyan-500/10 border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.1)]' : 'glass border-white/5 hover:bg-white/5'
+                    }`}
                   >
-                    <div className="flex items-center gap-3">
-                      <Cpu className="w-4 h-4 text-cyan-400" />
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">Unit Specifications</span>
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-lg transition-colors ${isSpecsOpen ? 'bg-cyan-500 text-white' : 'bg-white/5 text-cyan-400'}`}>
+                        <Terminal className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] block">Technical Telemetry</span>
+                        {product.arModel && (
+                           <span className="text-[8px] font-black text-cyan-500/70 uppercase tracking-widest flex items-center gap-1.5">
+                             <div className="w-1 h-1 bg-cyan-500 rounded-full animate-pulse" /> Spatial Stream Available
+                           </span>
+                        )}
+                      </div>
                     </div>
-                    {isSpecsOpen ? <ChevronUp className="w-4 h-4 text-slate-500" /> : <ChevronDown className="w-4 h-4 text-slate-500" />}
+                    <div className={`transition-transform duration-300 ${isSpecsOpen ? 'rotate-180' : ''}`}>
+                      <ChevronDown className={`w-4 h-4 ${isSpecsOpen ? 'text-cyan-400' : 'text-slate-500'}`} />
+                    </div>
                   </button>
                   
                   {isSpecsOpen && (
-                    <div className="mt-4 p-6 glass rounded-2xl border border-white/5 animate-in slide-in-from-top-2 duration-300">
-                      <div className="grid grid-cols-2 gap-y-4 gap-x-8">
-                        {Object.entries(product.techSpecs).map(([key, value]) => (
-                          <div key={key}>
-                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{key}</p>
-                            <p className="text-[11px] font-black text-white">{value}</p>
+                    <div className="mt-4 p-8 glass rounded-[2rem] border border-cyan-500/20 animate-in slide-in-from-top-4 duration-500 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
+                      
+                      <div className="grid grid-cols-2 gap-y-6 gap-x-10 relative z-10">
+                        {product.techSpecs && Object.entries(product.techSpecs).map(([key, value]) => {
+                          const isARMetric = key.toLowerCase().includes('polygon') || key.toLowerCase().includes('res');
+                          return (
+                            <div key={key} className="space-y-1 group/item">
+                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center gap-2 group-hover/item:text-slate-400 transition-colors">
+                                <div className={`w-1 h-1 rounded-full ${isARMetric ? 'bg-cyan-500' : 'bg-slate-700'}`} />
+                                {key}
+                              </p>
+                              <p className={`text-[12px] font-bold tracking-tight ${isARMetric ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.2)]' : 'text-white'}`}>
+                                {value}
+                              </p>
+                            </div>
+                          );
+                        })}
+                        {!product.techSpecs && (
+                          <div className="col-span-2 text-center py-4">
+                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Awaiting high-density telemetry from sector node...</p>
                           </div>
-                        ))}
+                        )}
+                      </div>
+
+                      {/* Diagnostic Overlay Decoration */}
+                      <div className="absolute bottom-2 right-4 opacity-10 font-mono text-[8px] text-cyan-400 pointer-events-none select-none">
+                        PRMR_OS_V4.2.0_SPEC_DUMP_0x00A1
                       </div>
                     </div>
                   )}

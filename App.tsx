@@ -43,15 +43,12 @@ const App: React.FC = () => {
 
   // --- Redirect Logic ---
   useEffect(() => {
-    // 1. If a user is logged in and tries to access the guest-only 'home' view, redirect them to the shop.
     if (user && view === 'home') {
       setView(user.isAdmin ? 'admin' : 'shop');
     }
-    // 2. If a user is NOT logged in and tries to access 'settings', redirect to auth.
     if (!user && view === 'settings') {
       setView('auth');
     }
-    // 3. If an admin tries to go to consumer views, redirect them back to admin or home
     if (user?.isAdmin && (view === 'shop' || view === 'cart' || view === 'checkout' || view === 'services')) {
       setView('admin');
     }
@@ -88,7 +85,6 @@ const App: React.FC = () => {
     return { name: 'Initiate', color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/30' };
   }, [totalSpent]);
 
-  // Mock spending data for Recharts
   const spendingData = useMemo(() => {
     return orders.slice(0, 7).reverse().map((o, i) => ({
       name: `T-${orders.length - i}`,
@@ -113,7 +109,6 @@ const App: React.FC = () => {
 
   const addToCart = (product: Product, quantity: number = 1, selectedVariants?: Record<string, string>) => {
     setCart(prev => {
-      // Calculate adjusted price based on variants
       let finalPrice = product.price;
       if (selectedVariants && product.variants) {
         product.variants.forEach(v => {
@@ -123,7 +118,6 @@ const App: React.FC = () => {
         });
       }
 
-      // Create a unique key for cart items that differ by variants
       const variantKey = selectedVariants ? JSON.stringify(selectedVariants) : '';
       const existing = prev.find(item => item.id === product.id && JSON.stringify(item.selectedVariants) === variantKey);
       
@@ -179,21 +173,21 @@ const App: React.FC = () => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
   };
 
+  const deleteOrder = (id: string) => {
+    setOrders(prev => prev.filter(o => o.id !== id));
+  };
+
   const handleProductClick = (p: Product) => {
     setSelectedProduct(p);
   };
 
-  // --- Profile Specific Handlers ---
   const updateProfileData = (field: keyof User, value: any) => {
     if (!user) return;
     setUser({ ...user, [field]: value });
   };
 
-  // --- Views ---
   const renderHome = () => {
-    // If logged in, do not show renderHome content at all.
     if (user) return null;
-
     return (
       <div className="space-y-24 pb-24">
         <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
@@ -230,7 +224,6 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        {/* New Arrivals Section */}
         <section className="max-w-7xl mx-auto px-6">
           <div className="flex items-end justify-between mb-12">
             <div>
@@ -277,50 +270,6 @@ const App: React.FC = () => {
           </div>
         </section>
 
-        <section className="max-w-7xl mx-auto px-6">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <h2 className="text-3xl font-black mb-2">Featured Tech</h2>
-              <p className="text-slate-500">Curated for maximum performance.</p>
-            </div>
-            <button onClick={() => setView('shop')} className="text-cyan-400 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
-              See all catalog <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {products.slice(0, 3).map(p => (
-              <div 
-                key={p.id} 
-                className="group glass rounded-3xl p-4 border border-white/10 transition-all hover:-translate-y-2 hover:border-cyan-500/50 cursor-pointer"
-                onClick={() => handleProductClick(p)}
-              >
-                <div className="relative aspect-square rounded-2xl overflow-hidden mb-6">
-                  {p.isNew && (
-                    <div className="absolute top-4 left-4 z-10 bg-cyan-500 text-white text-[8px] font-black px-2 py-0.5 rounded-sm uppercase">NEW</div>
-                  )}
-                  <img src={p.image} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
-                  <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1">
-                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                    <span className="text-[10px] font-bold">4.9</span>
-                  </div>
-                </div>
-                <h3 className="text-lg font-bold mb-1 group-hover:text-cyan-400 transition-colors">{p.name}</h3>
-                <p className="text-sm text-slate-500 mb-6 line-clamp-2">{p.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-black">${p.price}</span>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                    className="p-3 bg-white/5 hover:bg-cyan-600 rounded-xl transition-all group/btn"
-                  >
-                    <ShoppingBag className="w-5 h-5 text-slate-400 group-hover/btn:text-white" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Newsletter Section */}
         <Newsletter />
       </div>
     );
@@ -464,7 +413,6 @@ const App: React.FC = () => {
             <h1 className="text-4xl font-black">Security Clearance</h1>
           </div>
           
-          {/* Identity & Deployment Data */}
           <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
             <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4">
               <UserIcon className="w-3.5 h-3.5" /> Deployment Parameters
@@ -488,14 +436,13 @@ const App: React.FC = () => {
                   placeholder="Delivery Coordinates" 
                   value={formData.address} 
                   onChange={(e) => setFormData({...formData, address: e.target.value})} 
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" 
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600" 
                   rows={3} 
                 />
               </div>
             </div>
           </div>
 
-          {/* Transaction Protocol Selection */}
           <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
             <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4">
               <Shield className="w-3.5 h-3.5" /> Transaction Protocol
@@ -591,7 +538,6 @@ const App: React.FC = () => {
     return (
       <div className="max-w-7xl mx-auto px-6 py-32 animate-in fade-in duration-700">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left Sidebar Navigation */}
           <div className="lg:w-1/4 space-y-4">
             <div className="glass rounded-3xl p-6 border border-white/10 text-center">
               <div className="relative w-24 h-24 mx-auto mb-4">
@@ -608,113 +554,66 @@ const App: React.FC = () => {
             </div>
 
             <div className="glass rounded-3xl p-2 border border-white/10 flex flex-col">
-              <button 
-                onClick={() => setProfileTab('overview')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'overview' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              >
+              <button onClick={() => setProfileTab('overview')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'overview' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                 <LayoutDashboard className="w-4 h-4" /> Neural Overview
               </button>
-              <button 
-                onClick={() => setProfileTab('orders')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'orders' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              >
+              <button onClick={() => setProfileTab('orders')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'orders' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                 <History className="w-4 h-4" /> Order Ledger
               </button>
-              <button 
-                onClick={() => setProfileTab('wishlist')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'wishlist' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
-              >
+              <button onClick={() => setProfileTab('wishlist')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'wishlist' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                 <Heart className="w-4 h-4" /> Memory Bank
               </button>
-              <button 
-                onClick={() => setView('settings')}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all text-slate-400 hover:text-white hover:bg-white/5`}
-              >
+              <button onClick={() => setView('settings')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all text-slate-400 hover:text-white hover:bg-white/5`}>
                 <SettingsIcon className="w-4 h-4" /> System Parameters
               </button>
             </div>
 
-            <button 
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-3xl text-sm font-black border border-white/5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 transition-all uppercase tracking-widest"
-            >
+            <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-3xl text-sm font-black border border-white/5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 transition-all uppercase tracking-widest">
               <LogOut className="w-4 h-4" /> Sever Uplink
             </button>
 
             {user?.isAdmin && (
-              <button 
-                onClick={() => setView('admin')}
-                className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-3xl text-sm font-black border border-purple-500/30 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10 transition-all uppercase tracking-widest"
-              >
+              <button onClick={() => setView('admin')} className="w-full flex items-center justify-center gap-3 px-4 py-4 rounded-3xl text-sm font-black border border-purple-500/30 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10 transition-all uppercase tracking-widest">
                 <Shield className="w-4 h-4" /> Enter Command Center
               </button>
             )}
           </div>
 
-          {/* Right Content Area */}
           <div className="lg:w-3/4">
             {profileTab === 'overview' && (
               <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="glass rounded-3xl p-6 border border-white/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
                     <Zap className="w-8 h-8 text-cyan-400 mb-4" />
                     <p className="text-3xl font-black mb-1">{orders.length}</p>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Successful Transmissions</p>
                   </div>
                   <div className="glass rounded-3xl p-6 border border-white/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
                     <DollarSign className="w-8 h-8 text-purple-400 mb-4" />
                     <p className="text-3xl font-black mb-1">${totalSpent}</p>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Credits Invested</p>
                   </div>
                   <div className="glass rounded-3xl p-6 border border-white/10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-bl-[100px] transition-all group-hover:scale-110" />
                     <Heart className="w-8 h-8 text-rose-400 mb-4" />
                     <p className="text-3xl font-black mb-1">{wishlist.length}</p>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Memory Bank Items</p>
                   </div>
                 </div>
 
-                {/* Spending Chart */}
                 <div className="glass rounded-[2.5rem] p-8 border border-white/10">
                   <div className="flex items-center justify-between mb-8">
                     <h3 className="text-xl font-black flex items-center gap-2">
                       <TrendingUp className="text-cyan-400 w-5 h-5" /> Spending Trajectory
                     </h3>
-                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Recent Transmissions</div>
                   </div>
                   <div className="h-[200px] w-full">
                     {orders.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={spendingData}>
-                          <defs>
-                            <linearGradient id="colorCredits" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#22d3ee" stopOpacity={0.3}/>
-                              <stop offset="95%" stopColor="#22d3ee" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <XAxis 
-                            dataKey="name" 
-                            stroke="#475569" 
-                            fontSize={10} 
-                            tickLine={false} 
-                            axisLine={false} 
-                            dy={10}
-                          />
+                          <XAxis dataKey="name" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                           <YAxis hide />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }}
-                            itemStyle={{ color: '#22d3ee', fontWeight: 'bold' }}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="credits" 
-                            stroke="#22d3ee" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorCredits)" 
-                          />
+                          <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }} />
+                          <Area type="monotone" dataKey="credits" stroke="#22d3ee" strokeWidth={3} fill="#22d3ee" fillOpacity={0.1} />
                         </AreaChart>
                       </ResponsiveContainer>
                     ) : (
@@ -724,52 +623,12 @@ const App: React.FC = () => {
                     )}
                   </div>
                 </div>
-
-                <div className="glass rounded-[2.5rem] p-8 border border-white/10">
-                  <h3 className="text-xl font-black mb-6">Recent Activity Hub</h3>
-                  {orders.length > 0 ? (
-                    <div className="space-y-4">
-                      {orders.slice(0, 3).map(o => (
-                        <div key={o.id} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-cyan-500/20 transition-all">
-                          <div className="flex items-center gap-4">
-                            <div className="p-3 bg-cyan-500/10 rounded-xl">
-                              <Package className="w-5 h-5 text-cyan-400" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-sm group-hover:text-cyan-400 transition-colors">Transmission #{o.id.toUpperCase()}</p>
-                              <p className="text-xs text-slate-500">{o.date}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-black text-sm">${o.total}</p>
-                            <span className={`text-[10px] uppercase font-black tracking-widest ${
-                              o.status === OrderStatus.DELIVERED ? 'text-green-400' : 
-                              o.status === OrderStatus.PENDING ? 'text-yellow-400' : 'text-cyan-500'
-                            }`}>{o.status}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <p className="text-slate-500 italic text-sm">No recent activity detected in the sector.</p>
-                      <button onClick={() => setView('shop')} className="mt-6 text-cyan-400 text-sm font-bold flex items-center gap-2 mx-auto hover:gap-3 transition-all">
-                        Initialize First Order <ArrowRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
 
             {profileTab === 'orders' && (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-black">Transmission Archive</h3>
-                  <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                    <Activity className="w-3 h-3 text-cyan-400" /> Sync Active
-                  </div>
-                </div>
+                <h3 className="text-2xl font-black">Transmission Archive</h3>
                 {orders.length > 0 ? (
                   <div className="space-y-4">
                     {orders.map(o => (
@@ -778,31 +637,17 @@ const App: React.FC = () => {
                           <div>
                             <p className="font-mono text-cyan-400 text-lg mb-1">#{o.id.toUpperCase()}</p>
                             <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">{o.date} • {o.items.length} Modules</p>
-                            <p className="text-[10px] text-slate-500 mt-2 flex items-center gap-1.5 font-bold">
-                              <MapPin className="w-2.5 h-2.5" /> {o.address}
-                            </p>
                           </div>
                           <div className="flex flex-col items-end">
                             <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-1 ${
-                              o.status === OrderStatus.DELIVERED ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
-                              o.status === OrderStatus.PENDING ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                              'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                              o.status === OrderStatus.DELIVERED ? 'bg-green-500/20 text-green-400' :
+                              o.status === OrderStatus.PENDING ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-cyan-500/20 text-cyan-400'
                             }`}>
                               {o.status}
                             </span>
                             <p className="text-xl font-black">${o.total}</p>
                           </div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {o.items.map(item => (
-                            <div key={item.id + JSON.stringify(item.selectedVariants)} className="flex items-center gap-3 bg-white/5 rounded-2xl p-2 border border-white/5">
-                              <img src={item.image} className="w-10 h-10 rounded-lg object-cover" alt={item.name} />
-                              <div>
-                                <p className="text-xs font-bold truncate max-w-[120px]">{item.name}</p>
-                                <p className="text-[10px] text-slate-500">{item.quantity}x • ${item.price}</p>
-                              </div>
-                            </div>
-                          ))}
                         </div>
                       </div>
                     ))}
@@ -811,50 +656,6 @@ const App: React.FC = () => {
                   <div className="glass rounded-[3rem] p-16 text-center border border-white/10">
                     <History className="w-16 h-16 text-slate-800 mx-auto mb-6" />
                     <p className="text-slate-500 mb-8">The archive is vacant. No telemetry found.</p>
-                    <button onClick={() => setView('shop')} className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-black uppercase text-xs transition-all shadow-lg shadow-cyan-500/20">
-                      Access Catalog
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {profileTab === 'wishlist' && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <h3 className="text-2xl font-black">Memory Bank</h3>
-                {wishlistProducts.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {wishlistProducts.map(p => (
-                      <div key={p.id} className="group glass rounded-3xl p-4 border border-white/10 hover:border-cyan-500/30 transition-all">
-                        <div className="relative aspect-square rounded-2xl overflow-hidden mb-4 cursor-pointer" onClick={() => handleProductClick(p)}>
-                          <img src={p.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={p.name} />
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); toggleWishlist(p.id); }}
-                            className="absolute top-3 right-3 p-2 bg-black/40 backdrop-blur-md rounded-xl text-rose-400 hover:text-rose-300 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <h4 className="font-bold mb-1 truncate">{p.name}</h4>
-                        <div className="flex items-center justify-between mt-4">
-                          <span className="text-lg font-black">${p.price}</span>
-                          <button 
-                            onClick={() => handleProductClick(p)}
-                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-widest"
-                          >
-                            Deploy
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="glass rounded-[3rem] p-16 text-center border border-white/10">
-                    <Heart className="w-16 h-16 text-slate-800 mx-auto mb-6" />
-                    <p className="text-slate-500 mb-8">Memory bank is vacant. Start cataloging hardware.</p>
-                    <button onClick={() => setView('shop')} className="px-8 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-black uppercase transition-all">
-                      Browse Grid
-                    </button>
                   </div>
                 )}
               </div>
@@ -865,28 +666,15 @@ const App: React.FC = () => {
     );
   };
 
-  // Standard lucide icons for profile tab
   const SettingsIcon = ({ className }: { className?: string }) => (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="2" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-      <circle cx="12" cy="12" r="3"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>
     </svg>
   );
 
-  // --- Fix for missing renderOrderConfirmation ---
   const renderOrderConfirmation = () => {
     const lastOrder = orders[0];
     if (!lastOrder) return null;
-
     return (
       <div className="max-w-4xl mx-auto px-6 py-32 text-center animate-in zoom-in duration-500">
         <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-green-500/30">
@@ -894,49 +682,7 @@ const App: React.FC = () => {
         </div>
         <h1 className="text-5xl font-black mb-4 uppercase">Uplink Successful</h1>
         <p className="text-slate-400 text-lg mb-12 font-medium">Transmission ID: <span className="text-cyan-400 font-mono">#{lastOrder.id.toUpperCase()}</span> has been broadcast to the distribution grid.</p>
-        
-        <div className="glass rounded-[3rem] p-8 border border-white/10 text-left mb-12 max-w-2xl mx-auto shadow-2xl">
-          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-8">Manifest Overview</h3>
-          <div className="space-y-4 mb-10">
-            {lastOrder.items.map(item => (
-              <div key={item.id + JSON.stringify(item.selectedVariants)} className="flex justify-between items-center text-sm">
-                <span className="font-bold text-slate-300">{item.name} <span className="text-slate-600 font-black ml-2 text-[10px]">x{item.quantity}</span></span>
-                <span className="font-black text-cyan-400">${item.price * item.quantity}</span>
-              </div>
-            ))}
-          </div>
-          <div className="pt-8 border-t border-white/5 flex justify-between items-end">
-            <div>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Credits Disbursed</p>
-              <p className="text-3xl font-black text-white tracking-tighter">${lastOrder.total}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Sync Status</p>
-              <div className="flex items-center gap-2 text-green-400">
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-[10px] font-black uppercase">Complete</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-          <button 
-            onClick={() => setView('shop')} 
-            className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs"
-          >
-            Return to Catalog
-          </button>
-          <button 
-            onClick={() => {
-              setProfileTab('orders');
-              setView('profile');
-            }} 
-            className="px-10 py-4 glass hover:bg-white/10 text-white rounded-2xl font-black transition-all border border-white/10 uppercase tracking-widest text-xs text-slate-400"
-          >
-            View Order Ledger
-          </button>
-        </div>
+        <button onClick={() => setView('shop')} className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs">Return to Catalog</button>
       </div>
     );
   };
@@ -945,14 +691,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200">
-      <Navbar 
-        currentView={view} 
-        setView={setView} 
-        cartCount={cartCount} 
-        user={user} 
-        searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery} 
-      />
+      <Navbar currentView={view} setView={setView} cartCount={cartCount} user={user} searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
       <main className="pt-10">
         {view === 'home' && renderHome()}
         {view === 'shop' && renderShop()}
@@ -971,27 +710,13 @@ const App: React.FC = () => {
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'admin-auth' && <AdminAuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'order-confirmation' && renderOrderConfirmation()}
-        {view === 'admin' && user?.isAdmin && <AdminPanel products={products} orders={orders} setProducts={setProducts} updateOrderStatus={updateOrderStatus} />}
+        {view === 'admin' && user?.isAdmin && <AdminPanel products={products} orders={orders} setProducts={setProducts} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} />}
       </main>
-      
       {!isAdmin && <ChatSupport products={products} />}
-      
-      <ProductModal 
-        product={selectedProduct} 
-        allProducts={products} 
-        user={user} 
-        wishlist={wishlist} 
-        onClose={() => setSelectedProduct(null)} 
-        onAddToCart={addToCart} 
-        onSelectProduct={handleProductClick} 
-        onToggleWishlist={toggleWishlist} 
-      />
-      
-      {/* Redesigned Footer Links Column Grid */}
+      <ProductModal product={selectedProduct} allProducts={products} user={user} wishlist={wishlist} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} onSelectProduct={handleProductClick} onToggleWishlist={toggleWishlist} />
       <footer className="glass border-t border-white/10 pt-24 pb-12 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
-            {/* Brand Column */}
             <div className="space-y-6">
               <div className="flex items-center gap-2 mb-6">
                 <div className="bg-cyan-500 p-1.5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.4)]">
@@ -999,90 +724,10 @@ const App: React.FC = () => {
                 </div>
                 <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
               </div>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
-                The leading neural marketplace for post-human hardware. We provide the bridges to tomorrow's digital evolution.
-              </p>
-              <div className="flex gap-4 pt-4">
-                <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-cyan-400 border border-white/5 transition-all">
-                  <Twitter className="w-5 h-5" />
-                </button>
-                <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-cyan-400 border border-white/5 transition-all">
-                  <Linkedin className="w-5 h-5" />
-                </button>
-                <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-cyan-400 border border-white/5 transition-all">
-                  <Github className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Catalog Column */}
-            {!isAdmin && (
-              <div className="space-y-6">
-                <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Sector Grid</h4>
-                <ul className="space-y-3">
-                  {CATEGORIES.map(cat => (
-                    <li key={cat}>
-                      <button 
-                        onClick={() => { setSelectedCategory(cat); setView('shop'); window.scrollTo(0,0); }}
-                        className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2 group"
-                      >
-                        <div className="w-1.5 h-1.5 rounded-full bg-slate-800 group-hover:bg-cyan-500 transition-colors" />
-                        {cat}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Protocols Column */}
-            <div className="space-y-6">
-              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Core Protocols</h4>
-              <ul className="space-y-3">
-                <li><button onClick={() => {setView('about'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">About the Collective</button></li>
-                {!isAdmin && <li><button onClick={() => {setView('services'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Neural Services</button></li>}
-                <li><button onClick={() => {setView('contact'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Uplink Support</button></li>
-                <li><button onClick={() => {setView('faq'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2">FAQ Database <ExternalLink className="w-3 h-3" /></button></li>
-                <li><button onClick={() => {setView('roadmap'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">System Roadmap</button></li>
-              </ul>
-            </div>
-
-            {/* Security & Access Column */}
-            <div className="space-y-6">
-              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Neural Shield</h4>
-              <ul className="space-y-3">
-                <li><button onClick={() => {setView(user ? 'settings' : 'auth'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2">Privacy Protocols <Shield className="w-3 h-3" /></button></li>
-                <li><button onClick={() => {setView('sync-terms'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Sync Terms</button></li>
-                <li><button onClick={() => {setView('biometric-policy'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Biometric Policy</button></li>
-                <li>
-                  <button 
-                    onClick={() => {setView('admin-auth'); window.scrollTo(0,0);}} 
-                    className="mt-4 px-4 py-2 glass border border-purple-500/30 text-purple-400 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-purple-500/10 transition-all opacity-40 hover:opacity-100"
-                  >
-                    <Lock className="w-3 h-3" /> Admin Uplink
-                  </button>
-                </li>
-              </ul>
             </div>
           </div>
-
           <div className="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-              </div>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Grid Status: Online & Synchronized</span>
-            </div>
-            
-            <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em]">
-              © 2077 PRIMER CORP. • DESIGNED IN NEO-TOKYO • ALL DATA ENCRYPTED
-            </p>
-
-            <div className="flex items-center gap-6">
-               <Globe className="w-4 h-4 text-slate-600 hover:text-cyan-400 cursor-pointer" />
-               <button className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Global Node Selection</button>
-            </div>
+            <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em]">© 2077 PRIMER CORP. • DESIGNED IN NEO-TOKYO • ALL DATA ENCRYPTED</p>
           </div>
         </div>
       </footer>

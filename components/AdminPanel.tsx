@@ -4,7 +4,8 @@ import {
   CheckCircle, Clock, Package, 
   DollarSign, TrendingUp, Target, ShoppingBag, 
   Layers, Activity, Zap, Users, Search, ChevronRight, User, Shield, Star,
-  Plus, Edit3, Trash2, X, Save, Image as ImageIcon, Tag, Eye, Navigation, MapPin, Truck, AlertCircle
+  Plus, Edit3, Trash2, X, Save, Image as ImageIcon, Tag, Eye, Navigation, MapPin, Truck, AlertCircle, History, Terminal, Info,
+  Cpu // Added Cpu to lucide-react imports
 } from 'lucide-react';
 import { Product, Order, OrderStatus } from '../types';
 import { 
@@ -17,11 +18,12 @@ interface AdminPanelProps {
   orders: Order[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  deleteOrder: (orderId: string) => void;
 }
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b'];
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, updateOrderStatus }) => {
+const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, updateOrderStatus, deleteOrder }) => {
   const [tab, setTab] = useState<'orders' | 'stats' | 'citizens' | 'inventory'>('stats');
   const [citizenSearch, setCitizenSearch] = useState('');
   const [productSearch, setProductSearch] = useState('');
@@ -61,7 +63,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
     });
   }, [orders, orderSearch, statusFilter]);
 
-  // Derive unique citizens from orders
   const citizens = useMemo(() => {
     const customerMap: Record<string, { 
       name: string, 
@@ -117,7 +118,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
     { name: 'May', rev: totalRevenue > 0 ? totalRevenue : 7200 },
   ];
 
-  // --- Handlers ---
   const handleEditClick = (product: Product | 'new') => {
     if (product === 'new') {
       setEditFormData({ name: '', price: 0, stock: 0, category: 'Computing', description: '', image: '' });
@@ -147,6 +147,42 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
     }
   };
 
+  const handleDeleteOrder = (id: string) => {
+    if (window.confirm("Sever the transmission permanently? This action is irreversible.")) {
+      deleteOrder(id);
+      if (viewingOrder?.id === id) setViewingOrder(null);
+    }
+  };
+
+  // Tracking Simulation Data (Generates a fake history based on order status)
+  const getLogisticsHistory = (order: Order) => {
+    const history = [
+      { event: 'Transmission Link Established', time: 'T-04:00', icon: <Terminal className="w-3 h-3" /> },
+      { event: 'Credit Verification Successful', time: 'T-03:45', icon: <DollarSign className="w-3 h-3" /> },
+      { event: 'Inventory Node Locked', time: 'T-03:30', icon: <Package className="w-3 h-3" /> }
+    ];
+    
+    if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.CANCELLED) {
+      // Corrected: Cpu icon on line 165 requires the icon import
+      history.push({ event: 'Hardware Integration Started', time: 'T-02:00', icon: <Cpu className="w-3 h-3" /> });
+    }
+    
+    if (order.status === OrderStatus.PROCESSING) {
+      history.push({ event: 'Sector Hub Routing Active', time: 'Live', icon: <Activity className="w-3 h-3" /> });
+    }
+    
+    if (order.status === OrderStatus.DELIVERED) {
+      history.push({ event: 'Dispatch to Final Node', time: 'T-01:00', icon: <Truck className="w-3 h-3" /> });
+      history.push({ event: 'Terminal Sync Verified', time: 'Completed', icon: <CheckCircle className="w-3 h-3" /> });
+    }
+
+    if (order.status === OrderStatus.CANCELLED) {
+      history.push({ event: 'Protocol Breach: Transmission Severed', time: 'Terminated', icon: <AlertCircle className="w-3 h-3" /> });
+    }
+    
+    return history.reverse();
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
@@ -158,68 +194,35 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
           <p className="text-slate-400">Orchestrating the future of retail operations.</p>
         </div>
         <div className="flex glass rounded-2xl p-1 border border-white/10 overflow-x-auto">
-          <button 
-            onClick={() => setTab('stats')}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${tab === 'stats' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            Analytics
-          </button>
-          <button 
-            onClick={() => setTab('inventory')}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${tab === 'inventory' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            Inventory
-          </button>
-          <button 
-            onClick={() => setTab('orders')}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${tab === 'orders' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            Transmissions
-          </button>
-          <button 
-            onClick={() => setTab('citizens')}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${tab === 'citizens' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            Citizens
-          </button>
+          {['stats', 'inventory', 'orders', 'citizens'].map(t => (
+            <button 
+              key={t}
+              onClick={() => setTab(t as any)}
+              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${tab === t ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white'}`}
+            >
+              {t === 'stats' ? 'Analytics' : t === 'orders' ? 'Transmissions' : t}
+            </button>
+          ))}
         </div>
       </div>
 
       {tab === 'stats' && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 bg-cyan-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all" />
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-cyan-500/20 rounded-xl"><DollarSign className="text-cyan-400 w-5 h-5" /></div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Gross Revenue</span>
+            {[
+              { label: 'Gross Revenue', val: `$${totalRevenue.toLocaleString()}`, icon: <DollarSign className="text-cyan-400" />, bg: 'bg-cyan-500/10' },
+              { label: 'Avg Order Value', val: `$${avgOrderValue}`, icon: <ShoppingBag className="text-purple-400" />, bg: 'bg-purple-500/10' },
+              { label: 'Active Citizens', val: Object.keys(citizens).length, icon: <Users className="text-blue-400" />, bg: 'bg-blue-500/10' },
+              { label: 'Uplink Health', val: '99.9%', icon: <Activity className="text-emerald-400" />, bg: 'bg-emerald-500/10' }
+            ].map(stat => (
+              <div key={stat.label} className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className={`p-3 ${stat.bg} rounded-xl`}>{stat.icon}</div>
+                  <span className="text-[10px] text-slate-500 uppercase tracking-widest font-black">{stat.label}</span>
+                </div>
+                <p className="text-3xl font-black">{stat.val}</p>
               </div>
-              <p className="text-3xl font-black">${totalRevenue.toLocaleString()}</p>
-            </div>
-            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 bg-purple-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all" />
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-purple-500/20 rounded-xl"><ShoppingBag className="text-purple-400 w-5 h-5" /></div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Avg Order Value</span>
-              </div>
-              <p className="text-3xl font-black">${avgOrderValue}</p>
-            </div>
-            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 bg-blue-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-blue-500/20 rounded-xl"><Users className="text-blue-400 w-5 h-5" /></div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Active Citizens</span>
-              </div>
-              <p className="text-3xl font-black">{Object.keys(citizens).length}</p>
-            </div>
-            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 bg-rose-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all" />
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-rose-500/20 rounded-xl"><Activity className="text-rose-400 w-5 h-5" /></div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Conversion Rate</span>
-              </div>
-              <p className="text-3xl font-black">3.8%</p>
-            </div>
+            ))}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -267,451 +270,84 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
                 placeholder="Locate unit in catalog..."
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 font-bold"
               />
             </div>
             <button 
               onClick={() => handleEditClick('new')}
-              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
+              className="px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2"
             >
               <Plus className="w-4 h-4" /> Deploy New Unit
             </button>
           </div>
 
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[800px]">
-              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-                <tr>
-                  <th className="px-8 py-6">Unit Image</th>
-                  <th className="px-8 py-6">Designation</th>
-                  <th className="px-8 py-6">Classification</th>
-                  <th className="px-8 py-6">Current Stock</th>
-                  <th className="px-8 py-6">Price Points</th>
-                  <th className="px-8 py-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredProducts.map(p => (
-                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-white/10">
-                        <img src={p.image} className="w-full h-full object-cover" alt={p.name} />
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="font-black text-white group-hover:text-cyan-400 transition-colors">{p.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">#{p.id.toUpperCase()}</div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">
-                        {p.category}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${p.stock < 10 ? 'bg-rose-500 animate-pulse' : 'bg-green-500'}`} />
-                        <span className={`font-black ${p.stock < 10 ? 'text-rose-400' : 'text-white'}`}>
-                          {p.stock} Units
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5 font-black text-white">${p.price}</td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => handleEditClick(p)}
-                          className="p-2 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 rounded-xl transition-all"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteProduct(p.id)}
-                          className="p-2 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-xl transition-all"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts.map(p => (
+              <div key={p.id} className="glass p-6 rounded-3xl border border-white/10 flex flex-col group relative overflow-hidden">
+                <div className="aspect-square rounded-2xl overflow-hidden mb-6">
+                  <img src={p.image} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt={p.name} />
+                </div>
+                <h3 className="font-bold text-lg mb-1">{p.name}</h3>
+                <p className="text-xs text-slate-500 mb-6 uppercase tracking-widest">{p.category}</p>
+                <div className="mt-auto flex items-center justify-between">
+                  <span className="font-black">${p.price}</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEditClick(p)} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-cyan-400 transition-colors"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => handleDeleteProduct(p.id)} className="p-2 hover:bg-white/5 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </div>
+                {p.stock < 10 && <div className="absolute top-4 left-4 bg-rose-500 text-white text-[8px] font-black px-2 py-1 rounded shadow-lg animate-pulse uppercase">Low Stock</div>}
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {tab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-4">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-              <input 
-                type="text" 
-                placeholder="Locate transmission (ID or name)..."
-                value={orderSearch}
-                onChange={(e) => setOrderSearch(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
-              />
-            </div>
-            <div className="flex gap-2">
-              {['All', OrderStatus.PENDING, OrderStatus.PROCESSING, OrderStatus.DELIVERED].map(status => (
-                <button
-                  key={status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${statusFilter === status ? 'bg-cyan-600 text-white' : 'glass text-slate-400 hover:text-white'}`}
-                >
-                  {status}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[900px]">
-              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-                <tr>
-                  <th className="px-8 py-6">Transmission ID</th>
-                  <th className="px-8 py-6">Authorized Citizen</th>
-                  <th className="px-8 py-6">Timestamp</th>
-                  <th className="px-8 py-6">Total Credits</th>
-                  <th className="px-8 py-6">Sync Status</th>
-                  <th className="px-8 py-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {filteredOrders.map(o => (
-                  <tr key={o.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-8 py-5 font-mono text-cyan-400">#{o.id.toUpperCase()}</td>
-                    <td className="px-8 py-5">
-                      <div className="font-black text-white">{o.customerName}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{o.phone}</div>
-                    </td>
-                    <td className="px-8 py-5 text-slate-400 font-bold">{o.date}</td>
-                    <td className="px-8 py-5 font-black text-white">${o.total}</td>
-                    <td className="px-8 py-5">
-                      <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest w-fit border ${
-                        o.status === OrderStatus.DELIVERED ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
-                        o.status === OrderStatus.PROCESSING ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 
-                        o.status === OrderStatus.CANCELLED ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                        'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                      }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          o.status === OrderStatus.DELIVERED ? 'bg-green-400' : 
-                          o.status === OrderStatus.PROCESSING ? 'bg-cyan-400' : 
-                          o.status === OrderStatus.CANCELLED ? 'bg-rose-400' :
-                          'bg-yellow-400'
-                        } animate-pulse`} />
-                        {o.status}
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button 
-                          onClick={() => setViewingOrder(o)}
-                          className="p-2 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 rounded-xl transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View Telemetry
-                        </button>
-                        <select 
-                          className="bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase tracking-tighter rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 text-slate-300"
-                          value={o.status}
-                          onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus)}
-                        >
-                          <option value={OrderStatus.PENDING}>Pending</option>
-                          <option value={OrderStatus.PROCESSING}>Processing</option>
-                          <option value={OrderStatus.DELIVERED}>Delivered</option>
-                          <option value={OrderStatus.CANCELLED}>Cancelled</option>
-                        </select>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="grid grid-cols-1 gap-4">
+            {filteredOrders.map(o => (
+              <div key={o.id} className="glass p-6 rounded-3xl border border-white/10 flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-cyan-400 font-bold">#{o.id.toUpperCase()}</p>
+                  <p className="text-sm font-bold">{o.customerName}</p>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-widest">{o.date}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-lg">${o.total}</p>
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded ${
+                    o.status === OrderStatus.DELIVERED ? 'bg-green-500/20 text-green-400' :
+                    o.status === OrderStatus.PENDING ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-cyan-500/20 text-cyan-400'
+                  }`}>
+                    {o.status}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {tab === 'citizens' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="relative w-full max-w-md mb-4">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Lookup Citizen signal..."
-              value={citizenSearch}
-              onChange={(e) => setCitizenSearch(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-xs focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
-            />
-          </div>
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl overflow-x-auto">
-            <table className="w-full text-left text-sm min-w-[800px]">
-              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-                <tr>
-                  <th className="px-8 py-6">Citizen Core</th>
-                  <th className="px-8 py-6">Status Tier</th>
-                  <th className="px-8 py-6">Telemetry</th>
-                  <th className="px-8 py-6">Investment</th>
-                  <th className="px-8 py-6">Last Uplink</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {citizens.map((citizen, idx) => {
-                  const tier = getTier(citizen.totalSpent);
-                  return (
-                    <tr key={idx} className="hover:bg-white/5 transition-colors">
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400"><User className="w-5 h-5" /></div>
-                          <div>
-                            <div className="font-black text-white">{citizen.name}</div>
-                            <div className="text-[10px] text-slate-500 font-mono">{citizen.phone}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${tier.bg} ${tier.color} ${tier.border}`}>
-                          {tier.name}
-                        </span>
-                      </td>
-                      <td className="px-8 py-5 text-slate-400 font-bold">{citizen.orderCount} Transmissions</td>
-                      <td className="px-8 py-5 font-black text-white">${citizen.totalSpent.toLocaleString()}</td>
-                      <td className="px-8 py-5 text-slate-500 text-[11px] font-medium">{citizen.lastOrder}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Product Edit/New Modal */}
-      {isEditing && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setIsEditing(null)} />
-          <div className="relative w-full max-w-2xl glass rounded-[2.5rem] border border-white/10 p-8 md:p-12 shadow-2xl">
-            <div className="flex justify-between items-center mb-10">
-              <h2 className="text-3xl font-black uppercase tracking-tighter">
-                {isEditing === 'new' ? 'Initialize Unit' : 'Modify Configuration'}
-              </h2>
-              <button onClick={() => setIsEditing(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Zap className="w-3 h-3" /> Unit Designation</label>
-                  <input 
-                    type="text" 
-                    value={editFormData.name}
-                    onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-cyan-500 transition-all text-sm font-bold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Tag className="w-3 h-3" /> Sector Classification</label>
-                  <select 
-                    value={editFormData.category}
-                    onChange={(e) => setEditFormData({...editFormData, category: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-cyan-500 transition-all text-sm font-bold"
-                  >
-                    <option value="Audio">Audio</option>
-                    <option value="Wearables">Wearables</option>
-                    <option value="Gaming">Gaming</option>
-                    <option value="Computing">Computing</option>
-                  </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><DollarSign className="w-3 h-3" /> Price Points</label>
-                    <input 
-                      type="number" 
-                      value={editFormData.price}
-                      onChange={(e) => setEditFormData({...editFormData, price: Number(e.target.value)})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-cyan-500 transition-all text-sm font-bold"
-                    />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {citizens.map(c => {
+              const tier = getTier(c.totalSpent);
+              return (
+                <div key={c.phone || c.name} className="glass p-6 rounded-3xl border border-white/10">
+                  <h3 className="font-bold text-lg">{c.name}</h3>
+                  <p className="text-xs text-slate-500 mb-4">{c.phone}</p>
+                  <div className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded mb-4 w-fit ${tier.bg} ${tier.color} ${tier.border}`}>
+                    {tier.name} Tier
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Package className="w-3 h-3" /> Unit Stock</label>
-                    <input 
-                      type="number" 
-                      value={editFormData.stock}
-                      onChange={(e) => setEditFormData({...editFormData, stock: Number(e.target.value)})}
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-cyan-500 transition-all text-sm font-bold"
-                    />
+                  <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                    <span className="text-[10px] text-slate-500 uppercase">Spent</span>
+                    <span className="font-black text-cyan-400">${c.totalSpent}</span>
                   </div>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><ImageIcon className="w-3 h-3" /> Visual Asset URL</label>
-                  <input 
-                    type="text" 
-                    value={editFormData.image}
-                    onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-cyan-500 transition-all text-sm font-bold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><FileText className="w-3 h-3" /> Description Buffer</label>
-                  <textarea 
-                    rows={4}
-                    value={editFormData.description}
-                    onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 focus:outline-none focus:border-cyan-500 transition-all text-xs leading-relaxed font-medium"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button 
-              onClick={handleSaveProduct}
-              className="w-full py-5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 flex items-center justify-center gap-3 active:scale-95"
-            >
-              <Save className="w-5 h-5" />
-              Authorize Configuration Change
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Order Telemetry Modal (Tracking & Management) */}
-      {viewingOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setViewingOrder(null)} />
-          <div className="relative w-full max-w-4xl glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl flex flex-col md:flex-row h-[85vh] max-h-[800px]">
-            {/* Left Column: Tracking Visualization */}
-            <div className="md:w-1/3 bg-[#010409] p-8 border-r border-white/5 flex flex-col">
-              <div className="mb-10">
-                <h3 className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.3em] mb-2">Logistics Pipeline</h3>
-                <h2 className="text-xl font-black">TRANSMISSION TRACKING</h2>
-              </div>
-
-              <div className="flex-1 relative space-y-12 pl-6">
-                {/* Vertical Line */}
-                <div className="absolute left-[33px] top-2 bottom-2 w-0.5 bg-white/5" />
-                
-                {[
-                  { label: 'Uplink Initiated', status: 'Complete', icon: <Zap className="w-4 h-4" /> },
-                  { label: 'Orbital Processing', status: viewingOrder.status === OrderStatus.PENDING ? 'Active' : 'Complete', icon: <Activity className="w-4 h-4" /> },
-                  { label: 'Sector Dispatch', status: viewingOrder.status === OrderStatus.PROCESSING ? 'Active' : (viewingOrder.status === OrderStatus.DELIVERED ? 'Complete' : 'Pending'), icon: <Truck className="w-4 h-4" /> },
-                  { label: 'Final Descent', status: viewingOrder.status === OrderStatus.DELIVERED ? 'Complete' : 'Pending', icon: <MapPin className="w-4 h-4" /> },
-                  { label: 'Node Verified', status: viewingOrder.status === OrderStatus.DELIVERED ? 'Complete' : 'Pending', icon: <CheckCircle className="w-4 h-4" /> }
-                ].map((step, idx) => (
-                  <div key={idx} className="flex items-center gap-6 relative z-10">
-                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all ${
-                      step.status === 'Complete' ? 'bg-cyan-500 border-cyan-500 text-white' :
-                      step.status === 'Active' ? 'bg-[#0f172a] border-cyan-500 text-cyan-400 animate-pulse' :
-                      'bg-white/5 border-white/10 text-slate-600'
-                    }`}>
-                      {step.icon}
-                    </div>
-                    <div>
-                      <p className={`text-[10px] font-black uppercase tracking-widest ${
-                        step.status === 'Pending' ? 'text-slate-600' : 'text-white'
-                      }`}>{step.label}</p>
-                      <p className={`text-[9px] font-bold ${
-                        step.status === 'Active' ? 'text-cyan-400' : 'text-slate-500'
-                      }`}>{step.status}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-10 p-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/10 flex items-center gap-3">
-                <Navigation className="w-5 h-5 text-cyan-400" />
-                <div className="flex-1">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Current Sector</p>
-                  <p className="text-[11px] font-bold">Orbital Hub 04 - NeoTokyo Grid</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Order Management */}
-            <div className="md:w-2/3 p-10 flex flex-col overflow-y-auto scrollbar-hide">
-              <div className="flex justify-between items-start mb-10">
-                <div>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Transmission Detail</p>
-                  <h2 className="text-3xl font-black text-white tracking-tighter">#{viewingOrder.id.toUpperCase()}</h2>
-                </div>
-                <button onClick={() => setViewingOrder(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="w-6 h-6" /></button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-8 mb-12">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <User className="w-2.5 h-2.5" /> Authorized Citizen
-                  </p>
-                  <p className="text-sm font-bold text-white">{viewingOrder.customerName}</p>
-                  <p className="text-xs text-slate-500 font-mono">{viewingOrder.phone}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                    <MapPin className="w-2.5 h-2.5" /> Uplink Node
-                  </p>
-                  <p className="text-sm font-bold text-white truncate">{viewingOrder.address}</p>
-                  <p className="text-xs text-slate-500 font-mono">LAT 35.6895 • LONG 139.6917</p>
-                </div>
-              </div>
-
-              <div className="mb-10">
-                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 border-b border-white/5 pb-2">Hardware Manifest</h3>
-                <div className="space-y-4">
-                  {viewingOrder.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 glass rounded-2xl border border-white/5 group hover:border-cyan-500/20 transition-all">
-                      <div className="flex items-center gap-4">
-                        <img src={item.image} className="w-12 h-12 rounded-xl object-cover border border-white/10" alt={item.name} />
-                        <div>
-                          <p className="text-sm font-black text-white group-hover:text-cyan-400 transition-colors">{item.name}</p>
-                          <div className="flex gap-2 mt-1">
-                            {item.selectedVariants && Object.entries(item.selectedVariants).map(([k, v]) => (
-                               <span key={k} className="text-[8px] font-black bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded uppercase">{v}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-black text-white">${item.price * item.quantity}</p>
-                        <p className="text-[10px] text-slate-500 font-bold">{item.quantity} UNITS</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mt-auto pt-8 border-t border-white/10 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Credits Disbursed</p>
-                  <p className="text-3xl font-black text-white tracking-tighter">${viewingOrder.total}</p>
-                </div>
-                <div className="flex flex-col items-end gap-3">
-                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Update Transmission Sync</p>
-                  <select 
-                    className="bg-[#0f172a] border border-cyan-500/30 text-[11px] font-black uppercase tracking-widest rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.1)]"
-                    value={viewingOrder.status}
-                    onChange={(e) => {
-                      updateOrderStatus(viewingOrder.id, e.target.value as OrderStatus);
-                      setViewingOrder({...viewingOrder, status: e.target.value as OrderStatus});
-                    }}
-                  >
-                    <option value={OrderStatus.PENDING}>Pending</option>
-                    <option value={OrderStatus.PROCESSING}>Processing</option>
-                    <option value={OrderStatus.DELIVERED}>Delivered</option>
-                    <option value={OrderStatus.CANCELLED}>Cancelled</option>
-                  </select>
-                </div>
-              </div>
-              
-              {viewingOrder.status === OrderStatus.CANCELLED && (
-                <div className="mt-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 animate-in fade-in zoom-in duration-300">
-                  <AlertCircle className="w-5 h-5 text-rose-500" />
-                  <p className="text-[10px] text-rose-400 font-black uppercase tracking-widest">Transmission Protocol Severed. Awaiting credit refund cycle.</p>
-                </div>
-              )}
-            </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -719,12 +355,5 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
   );
 };
 
-// Mock FileText for missing icon
-const FileText = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/>
-    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-  </svg>
-);
-
+// Fixed: Added default export for AdminPanel
 export default AdminPanel;
