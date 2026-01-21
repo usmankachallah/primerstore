@@ -14,6 +14,7 @@ import FAQPage from './components/FAQPage';
 import SupportTicketPage from './components/SupportTicketPage';
 import RoadmapPage from './components/RoadmapPage';
 import SyncTermsPage from './components/SyncTermsPage';
+import BiometricPolicyPage from './components/BiometricPolicyPage';
 import { Product, CartItem, Order, OrderStatus, View, User } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
@@ -43,11 +44,15 @@ const App: React.FC = () => {
   useEffect(() => {
     // 1. If a user is logged in and tries to access the guest-only 'home' view, redirect them to the shop.
     if (user && view === 'home') {
-      setView('shop');
+      setView(user.isAdmin ? 'admin' : 'shop');
     }
     // 2. If a user is NOT logged in and tries to access 'settings', redirect to auth.
     if (!user && view === 'settings') {
       setView('auth');
+    }
+    // 3. If an admin tries to go to consumer views, redirect them back to admin or home
+    if (user?.isAdmin && (view === 'shop' || view === 'cart' || view === 'checkout' || view === 'services')) {
+      setView('admin');
     }
   }, [user, view]);
 
@@ -97,7 +102,7 @@ const App: React.FC = () => {
       savedAddresses: userData.savedAddresses || [userData.address || 'Neo-Tokyo Sector 4']
     };
     setUser(userWithAddresses);
-    setView('shop'); // Direct to shop immediately on login
+    setView(userWithAddresses.isAdmin ? 'admin' : 'shop');
   };
 
   const handleLogout = () => {
@@ -932,6 +937,8 @@ const App: React.FC = () => {
     );
   };
 
+  const isAdmin = user?.isAdmin;
+
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200">
       <Navbar 
@@ -956,12 +963,15 @@ const App: React.FC = () => {
         {view === 'support-ticket' && <SupportTicketPage setView={setView} />}
         {view === 'roadmap' && <RoadmapPage />}
         {view === 'sync-terms' && <SyncTermsPage setView={setView} />}
+        {view === 'biometric-policy' && <BiometricPolicyPage setView={setView} />}
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'admin-auth' && <AdminAuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'order-confirmation' && renderOrderConfirmation()}
         {view === 'admin' && user?.isAdmin && <AdminPanel products={products} orders={orders} setProducts={setProducts} updateOrderStatus={updateOrderStatus} />}
       </main>
-      <ChatSupport products={products} />
+      
+      {!isAdmin && <ChatSupport products={products} />}
+      
       <ProductModal 
         product={selectedProduct} 
         allProducts={products} 
@@ -1002,29 +1012,31 @@ const App: React.FC = () => {
             </div>
 
             {/* Catalog Column */}
-            <div className="space-y-6">
-              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Sector Grid</h4>
-              <ul className="space-y-3">
-                {CATEGORIES.map(cat => (
-                  <li key={cat}>
-                    <button 
-                      onClick={() => { setSelectedCategory(cat); setView('shop'); window.scrollTo(0,0); }}
-                      className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2 group"
-                    >
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-800 group-hover:bg-cyan-500 transition-colors" />
-                      {cat}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {!isAdmin && (
+              <div className="space-y-6">
+                <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Sector Grid</h4>
+                <ul className="space-y-3">
+                  {CATEGORIES.map(cat => (
+                    <li key={cat}>
+                      <button 
+                        onClick={() => { setSelectedCategory(cat); setView('shop'); window.scrollTo(0,0); }}
+                        className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2 group"
+                      >
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-800 group-hover:bg-cyan-500 transition-colors" />
+                        {cat}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Protocols Column */}
             <div className="space-y-6">
               <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Core Protocols</h4>
               <ul className="space-y-3">
                 <li><button onClick={() => {setView('about'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">About the Collective</button></li>
-                <li><button onClick={() => {setView('services'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Neural Services</button></li>
+                {!isAdmin && <li><button onClick={() => {setView('services'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Neural Services</button></li>}
                 <li><button onClick={() => {setView('contact'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Uplink Support</button></li>
                 <li><button onClick={() => {setView('faq'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2">FAQ Database <ExternalLink className="w-3 h-3" /></button></li>
                 <li><button onClick={() => {setView('roadmap'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">System Roadmap</button></li>
@@ -1037,7 +1049,7 @@ const App: React.FC = () => {
               <ul className="space-y-3">
                 <li><button onClick={() => {setView(user ? 'settings' : 'auth'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2">Privacy Protocols <Shield className="w-3 h-3" /></button></li>
                 <li><button onClick={() => {setView('sync-terms'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Sync Terms</button></li>
-                <li><button className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Biometric Policy</button></li>
+                <li><button onClick={() => {setView('biometric-policy'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Biometric Policy</button></li>
                 <li>
                   <button 
                     onClick={() => {setView('admin-auth'); window.scrollTo(0,0);}} 

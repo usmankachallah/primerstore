@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingCart, User, Cpu, ShieldCheck, Home, Package, LogIn, Info, MessageCircle, Search, Settings, Wrench } from 'lucide-react';
+import { User, Cpu, ShoppingBag, ShieldCheck, Home, LogIn, Search, Settings, Zap } from 'lucide-react';
 import { View, User as UserType } from '../types';
 
 interface NavbarProps {
@@ -21,6 +21,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
     }
   };
 
+  const isAdmin = user?.isAdmin;
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4">
       <div className="max-w-7xl mx-auto glass rounded-2xl flex items-center justify-between px-6 py-3 border border-white/10 gap-4">
@@ -35,17 +37,19 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
           <span className="text-xl font-extrabold tracking-tighter gradient-text hidden sm:block">PRIMERSTORE</span>
         </div>
 
-        {/* Global Search Bar */}
-        <div className="flex-1 max-w-md relative hidden sm:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input 
-            type="text" 
-            placeholder="Search the matrix..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs focus:outline-none focus:border-cyan-500 focus:bg-white/10 transition-all placeholder:text-slate-600"
-          />
-        </div>
+        {/* Global Search Bar - Hidden for Admins to clean up space */}
+        {!isAdmin && (
+          <div className="flex-1 max-w-md relative hidden sm:block">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Search the matrix..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-xs focus:outline-none focus:border-cyan-500 focus:bg-white/10 transition-all placeholder:text-slate-600"
+            />
+          </div>
+        )}
 
         {/* Navigation Links */}
         <div className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-400">
@@ -55,19 +59,25 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
           >
             <Home className="w-4 h-4" /> Home
           </button>
-          <button 
-            onClick={() => setView('shop')}
-            className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'shop' ? 'text-cyan-400' : ''}`}
-          >
-            <Package className="w-4 h-4" /> Products
-          </button>
-          <button 
-            onClick={() => setView('services')}
-            className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'services' ? 'text-cyan-400' : ''}`}
-          >
-            <Wrench className="w-4 h-4" /> Services
-          </button>
-          {user?.isAdmin && (
+          
+          {!isAdmin && (
+            <>
+              <button 
+                onClick={() => setView('shop')}
+                className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'shop' ? 'text-cyan-400' : ''}`}
+              >
+                <ShoppingBag className="w-4 h-4" /> Products
+              </button>
+              <button 
+                onClick={() => setView('services')}
+                className={`hover:text-cyan-400 transition-colors flex items-center gap-1.5 ${currentView === 'services' ? 'text-cyan-400' : ''}`}
+              >
+                <Zap className="w-4 h-4" /> Services
+              </button>
+            </>
+          )}
+
+          {isAdmin && (
             <button 
               onClick={() => setView('admin')}
               className={`hover:text-purple-400 transition-colors flex items-center gap-1.5 ${currentView === 'admin' ? 'text-purple-400' : ''}`}
@@ -79,21 +89,26 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-          <button className="sm:hidden p-2 hover:bg-white/5 rounded-full text-slate-300" onClick={() => setView('shop')}>
-            <Search className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => setView('cart')}
-            className="relative p-2 hover:bg-white/5 rounded-full transition-colors group"
-          >
-            <ShoppingCart className="w-5 h-5 text-slate-300 group-hover:text-cyan-400" />
-            {cartCount > 0 && (
-              <span className="absolute top-0 right-0 bg-cyan-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                {cartCount}
-              </span>
-            )}
-          </button>
+          {!isAdmin && (
+            <button className="sm:hidden p-2 hover:bg-white/5 rounded-full text-slate-300" onClick={() => setView('shop')}>
+              <Search className="w-5 h-5" />
+            </button>
+          )}
           
+          {!isAdmin && (
+            <button 
+              onClick={() => setView('cart')}
+              className={`p-2 hover:bg-white/5 rounded-full transition-colors group relative ${currentView === 'cart' ? 'text-cyan-400 bg-white/5' : 'text-slate-300'}`}
+            >
+              <ShoppingBag className="w-5 h-5 group-hover:text-cyan-400" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-cyan-600 text-white text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                  {cartCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {user && (
             <button 
               onClick={() => setView('settings')}

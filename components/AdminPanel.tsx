@@ -1,14 +1,14 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Plus, Edit2, Trash2, CheckCircle, Clock, Package, 
-  DollarSign, Users, TrendingUp, Target, ShoppingBag, 
-  Layers, ChevronRight, Activity, Zap
+  CheckCircle, Clock, Package, 
+  DollarSign, TrendingUp, Target, ShoppingBag, 
+  Layers, Activity, Zap
 } from 'lucide-react';
 import { Product, Order, OrderStatus } from '../types';
 import { 
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  Cell, PieChart, Pie, LineChart, Line, Legend, AreaChart, Area
+  XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  Cell, PieChart, Pie, Legend, AreaChart, Area
 } from 'recharts';
 
 interface AdminPanelProps {
@@ -20,8 +20,8 @@ interface AdminPanelProps {
 
 const COLORS = ['#06b6d4', '#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b'];
 
-const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, updateOrderStatus }) => {
-  const [tab, setTab] = useState<'products' | 'orders' | 'stats'>('stats');
+const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, updateOrderStatus }) => {
+  const [tab, setTab] = useState<'orders' | 'stats'>('stats');
 
   // --- Calculations ---
   const totalRevenue = useMemo(() => orders.reduce((acc, curr) => acc + curr.total, 0), [orders]);
@@ -49,24 +49,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
     { name: 'May', rev: totalRevenue > 0 ? totalRevenue : 7200, orders: orders.length || 22 },
   ];
 
-  const handleDeleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
-  };
-
-  const handleAddProduct = () => {
-    const newId = Math.random().toString(36).substr(2, 9);
-    const newProd: Product = {
-      id: newId,
-      name: 'New Product',
-      price: 0,
-      description: 'New Description',
-      image: 'https://picsum.photos/seed/new/600/600',
-      category: 'Electronics',
-      stock: 10
-    };
-    setProducts(prev => [...prev, newProd]);
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
@@ -83,12 +65,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
             className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'stats' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
             Analytics
-          </button>
-          <button 
-            onClick={() => setTab('products')}
-            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'products' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-          >
-            Inventory
           </button>
           <button 
             onClick={() => setTab('orders')}
@@ -234,115 +210,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
                 </ResponsiveContainer>
               </div>
             </div>
-          </div>
-
-          {/* Bottom Table Summary */}
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden">
-            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
-              <h3 className="font-black text-sm uppercase tracking-widest">Inventory Performance Logs</h3>
-              <button className="text-[10px] font-black text-cyan-400 flex items-center gap-1 hover:gap-2 transition-all">
-                Export Full Report <ChevronRight className="w-3 h-3" />
-              </button>
-            </div>
-            <div className="p-0 overflow-x-auto">
-              <table className="w-full text-left text-[11px]">
-                <thead className="text-slate-500 uppercase tracking-widest font-black border-b border-white/5">
-                  <tr>
-                    <th className="px-8 py-4">Hardware Unit</th>
-                    <th className="px-8 py-4">Velocity</th>
-                    <th className="px-8 py-4">Stock Integrity</th>
-                    <th className="px-8 py-4">Projected Depletion</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {products.slice(0, 4).map(p => (
-                    <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-8 py-4 font-bold">{p.name}</td>
-                      <td className="px-8 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-cyan-500" 
-                              style={{ width: `${Math.floor(Math.random() * 60) + 20}%` }}
-                            />
-                          </div>
-                          <span className="text-slate-400">Stable</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-4">
-                        <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase ${p.stock < 10 ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
-                          {p.stock} Units Remaining
-                        </span>
-                      </td>
-                      <td className="px-8 py-4 text-slate-500 italic">~ {Math.floor(Math.random() * 14) + 2} Cycles</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'products' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-end">
-            <button 
-              onClick={handleAddProduct}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-bold transition-all shadow-xl shadow-cyan-500/20"
-            >
-              <Plus className="w-4 h-4" /> Add New Unit
-            </button>
-          </div>
-          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
-                <tr>
-                  <th className="px-8 py-6">Hardware Identifier</th>
-                  <th className="px-8 py-6">Sector</th>
-                  <th className="px-8 py-6">Credit Cost</th>
-                  <th className="px-8 py-6">Distribution Grid</th>
-                  <th className="px-8 py-6 text-right">Access</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {products.map(p => (
-                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-4">
-                        <img src={p.image} className="w-12 h-12 rounded-xl object-cover border border-white/10 group-hover:border-cyan-500/50 transition-colors" />
-                        <div>
-                          <p className="font-black text-white">{p.name}</p>
-                          <p className="text-[10px] text-slate-500 font-mono">ID: {p.id.toUpperCase()}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-5">
-                      <span className="text-slate-400 font-bold">{p.category}</span>
-                    </td>
-                    <td className="px-8 py-5 font-black text-cyan-400">${p.price}</td>
-                    <td className="px-8 py-5">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight ${p.stock < 10 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
-                        {p.stock} units
-                      </span>
-                    </td>
-                    <td className="px-8 py-5 text-right">
-                      <div className="flex justify-end gap-3">
-                        <button className="p-2.5 hover:bg-white/10 rounded-xl transition-colors text-slate-500 hover:text-white border border-white/5">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteProduct(p.id)}
-                          className="p-2.5 hover:bg-red-500/20 rounded-xl transition-colors text-slate-500 hover:text-red-400 border border-white/5"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
       )}

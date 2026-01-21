@@ -58,4 +58,4 @@ export interface User {
   isAdmin: boolean;
 }
 
-export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services' | 'faq' | 'support-ticket' | 'roadmap' | 'sync-terms';
+export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services' | 'faq' | 'support-ticket' | 'roadmap' | 'sync-terms' | 'biometric-policy';
