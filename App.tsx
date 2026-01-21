@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from './components/Navbar';
 import ChatSupport from './components/ChatSupport';
@@ -13,12 +14,12 @@ import {
   ShoppingBag, ArrowRight, Star, ArrowLeft, CreditCard, 
   CheckCircle2, Search, Filter, Package, Cpu, 
   User as UserIcon, Settings, Heart, LayoutDashboard, 
-  History, Shield, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut, Lock
+  History, Shield, ShieldCheck, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut, Lock,
+  Wallet, Fingerprint, Activity
 } from 'lucide-react';
 
 const App: React.FC = () => {
   // --- State ---
-  // Initial view set to 'home'
   const [view, setView] = useState<View>('home');
   const [profileTab, setProfileTab] = useState<'overview' | 'orders' | 'wishlist' | 'settings'>('overview');
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
@@ -306,24 +307,123 @@ const App: React.FC = () => {
 
   const renderCheckout = () => {
     const [formData, setFormData] = useState({ name: user?.name || '', address: user?.address || '', phone: user?.phone || '' });
+    const [paymentMethod, setPaymentMethod] = useState<'Credit Card' | 'Crypto Wallet' | 'Cybernetic Transfer'>('Credit Card');
+
+    const paymentOptions = [
+      { id: 'Credit Card', icon: <CreditCard className="w-5 h-5" />, label: 'Standard Sync', desc: 'Credit/Debit Card' },
+      { id: 'Crypto Wallet', icon: <Wallet className="w-5 h-5" />, label: 'Block Vault', desc: 'Web3 / Crypto' },
+      { id: 'Cybernetic Transfer', icon: <Activity className="w-5 h-5" />, label: 'Neural Link', desc: 'Direct Transfer' }
+    ] as const;
+
     return (
       <div className="max-w-7xl mx-auto px-6 py-32 grid grid-cols-1 lg:grid-cols-2 gap-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="space-y-8">
-          <div className="flex items-center gap-4"><button onClick={() => setView('cart')} className="p-2 glass rounded-full hover:bg-white/10"><ArrowLeft className="w-5 h-5" /></button><h1 className="text-4xl font-black">Security Clearance</h1></div>
-          <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
-            <div className="space-y-4">
-              <input type="text" placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500" />
-              <input type="text" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500" />
-              <textarea placeholder="Delivery Coordinates" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500" rows={3} />
-            </div>
-            <button onClick={() => placeOrder(formData)} disabled={!formData.name || !formData.address || !formData.phone} className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-2xl font-bold">Authorize Transaction</button>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('cart')} className="p-2 glass rounded-full hover:bg-white/10">
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-4xl font-black">Security Clearance</h1>
           </div>
+          
+          {/* Identity & Deployment Data */}
+          <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4">
+              <UserIcon className="w-3.5 h-3.5" /> Deployment Parameters
+            </h3>
+            <div className="space-y-4">
+              <input type="text" placeholder="Full Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" />
+              <input type="text" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" />
+              <textarea placeholder="Delivery Coordinates" value={formData.address} onChange={(e) => setFormData({...formData, address: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500 transition-colors" rows={3} />
+            </div>
+          </div>
+
+          {/* Transaction Protocol Selection */}
+          <div className="glass rounded-3xl p-8 border border-white/10 space-y-6">
+            <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-4">
+              <Shield className="w-3.5 h-3.5" /> Transaction Protocol
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {paymentOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setPaymentMethod(option.id)}
+                  className={`p-4 rounded-2xl border flex flex-col items-center gap-2 transition-all text-center relative overflow-hidden group ${
+                    paymentMethod === option.id 
+                    ? 'bg-cyan-500/10 border-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.2)]' 
+                    : 'glass border-white/10 text-slate-400 hover:border-white/20'
+                  }`}
+                >
+                  {paymentMethod === option.id && (
+                    <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500" />
+                  )}
+                  <div className={`p-2 rounded-lg transition-colors ${paymentMethod === option.id ? 'bg-cyan-500 text-white' : 'bg-white/5 text-slate-500'}`}>
+                    {option.icon}
+                  </div>
+                  <div>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${paymentMethod === option.id ? 'text-white' : 'text-slate-400'}`}>
+                      {option.label}
+                    </p>
+                    <p className="text-[9px] text-slate-500 font-bold mt-0.5">{option.desc}</p>
+                  </div>
+                  {paymentMethod === option.id && (
+                    <CheckCircle2 className="absolute top-2 right-2 w-3 h-3 text-cyan-400" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button 
+            onClick={() => placeOrder(formData)} 
+            disabled={!formData.name || !formData.address || !formData.phone} 
+            className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded-2xl font-bold shadow-xl shadow-cyan-500/20 transition-all active:scale-95 flex items-center justify-center gap-3"
+          >
+            <Fingerprint className="w-5 h-5" />
+            Authorize Transaction
+          </button>
         </div>
-        <div className="glass rounded-3xl p-8 border border-white/10 h-fit">
-          <h3 className="text-xl font-black mb-6">Manifest Summary</h3>
-          <div className="space-y-4 mb-8">{cart.map(item => (<div key={item.id} className="flex justify-between items-center text-sm"><span>{item.quantity}x {item.name}</span><span className="font-bold">${item.price * item.quantity}</span></div>))}</div>
-          <div className="h-px bg-white/10 w-full mb-6" />
-          <div className="flex justify-between items-center text-2xl font-black"><span>Total Credits</span><span className="text-cyan-400">${cartTotal}</span></div>
+
+        <div className="space-y-8">
+          <div className="glass rounded-3xl p-8 border border-white/10 h-fit">
+            <h3 className="text-xl font-black mb-6">Manifest Summary</h3>
+            <div className="space-y-4 mb-8">
+              {cart.map(item => (
+                <div key={item.id} className="flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-3">
+                    <img src={item.image} className="w-10 h-10 rounded-lg object-cover border border-white/5" alt={item.name} />
+                    <div>
+                      <span className="font-bold">{item.name}</span>
+                      <p className="text-[10px] text-slate-500">{item.quantity} Unit(s)</p>
+                    </div>
+                  </div>
+                  <span className="font-black">${item.price * item.quantity}</span>
+                </div>
+              ))}
+            </div>
+            <div className="h-px bg-white/10 w-full mb-6" />
+            <div className="space-y-3 mb-8">
+              <div className="flex justify-between items-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                <span>Network Fee</span>
+                <span>$0.00</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                <span>Protocol Sync</span>
+                <span>$0.00</span>
+              </div>
+            </div>
+            <div className="flex justify-between items-center text-2xl font-black">
+              <span>Total Credits</span>
+              <span className="text-cyan-400">${cartTotal}</span>
+            </div>
+          </div>
+
+          <div className="glass rounded-3xl p-6 border border-white/10 flex items-center gap-4 bg-cyan-500/5">
+            <ShieldCheck className="w-6 h-6 text-cyan-400" />
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400 mb-0.5">Quantum-Safe Encryption</p>
+              <p className="text-[9px] text-slate-500 font-bold">Your biometric and financial data is processed within a secure isolated sandbox.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -630,7 +730,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#020617] text-slate-200">
-      <Navbar currentView={view} setView={setView} cartCount={cartCount} user={user} />
+      <Navbar 
+        currentView={view} 
+        setView={setView} 
+        cartCount={cartCount} 
+        user={user} 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+      />
       <main className="pt-10">
         {view === 'home' && renderHome()}
         {view === 'shop' && renderShop()}

@@ -1,8 +1,15 @@
 
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, CheckCircle, Clock, Package, DollarSign, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { 
+  Plus, Edit2, Trash2, CheckCircle, Clock, Package, 
+  DollarSign, Users, TrendingUp, Target, ShoppingBag, 
+  Layers, ChevronRight, Activity, Zap
+} from 'lucide-react';
 import { Product, Order, OrderStatus } from '../types';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
+  Cell, PieChart, Pie, LineChart, Line, Legend, AreaChart, Area
+} from 'recharts';
 
 interface AdminPanelProps {
   products: Product[];
@@ -11,14 +18,35 @@ interface AdminPanelProps {
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
 }
 
+const COLORS = ['#06b6d4', '#8b5cf6', '#3b82f6', '#ec4899', '#f59e0b'];
+
 const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, updateOrderStatus }) => {
   const [tab, setTab] = useState<'products' | 'orders' | 'stats'>('stats');
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const statsData = [
-    { name: 'Revenue', value: orders.reduce((acc, curr) => acc + curr.total, 0) },
-    { name: 'Orders', value: orders.length },
-    { name: 'Inventory', value: products.length },
+  // --- Calculations ---
+  const totalRevenue = useMemo(() => orders.reduce((acc, curr) => acc + curr.total, 0), [orders]);
+  
+  const avgOrderValue = useMemo(() => 
+    orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0
+  , [totalRevenue, orders]);
+
+  const salesByCategory = useMemo(() => {
+    const categories: Record<string, number> = {};
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        categories[item.category] = (categories[item.category] || 0) + (item.price * item.quantity);
+      });
+    });
+    return Object.entries(categories).map(([name, value]) => ({ name, value }));
+  }, [orders]);
+
+  // Mocked trend data for visual impact
+  const revenueTrend = [
+    { name: 'Jan', rev: 4500, orders: 12 },
+    { name: 'Feb', rev: 5200, orders: 15 },
+    { name: 'Mar', rev: 4800, orders: 11 },
+    { name: 'Apr', rev: 6100, orders: 18 },
+    { name: 'May', rev: totalRevenue > 0 ? totalRevenue : 7200, orders: orders.length || 22 },
   ];
 
   const handleDeleteProduct = (id: string) => {
@@ -41,75 +69,217 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-12">
         <div>
-          <h1 className="text-4xl font-extrabold mb-2">Command Center</h1>
-          <p className="text-slate-400">Manage your futuristic retail empire.</p>
+          <h1 className="text-4xl font-extrabold mb-2 flex items-center gap-3">
+            <Zap className="text-cyan-400 w-8 h-8" />
+            Command Center
+          </h1>
+          <p className="text-slate-400">Orchestrating the future of retail operations.</p>
         </div>
-        <div className="flex glass rounded-xl p-1 border border-white/10">
+        <div className="flex glass rounded-2xl p-1 border border-white/10">
           <button 
             onClick={() => setTab('stats')}
-            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'stats' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'stats' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
             Analytics
           </button>
           <button 
             onClick={() => setTab('products')}
-            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'products' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'products' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
-            Products
+            Inventory
           </button>
           <button 
             onClick={() => setTab('orders')}
-            className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'orders' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'}`}
+            className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${tab === 'orders' ? 'bg-cyan-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
-            Orders
+            Transmissions
           </button>
         </div>
       </div>
 
       {tab === 'stats' && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="glass p-6 rounded-2xl border border-white/10 flex items-center gap-4">
-              <div className="p-3 bg-cyan-500/20 rounded-xl"><DollarSign className="text-cyan-400" /></div>
-              <div>
-                <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Total Revenue</p>
-                <p className="text-2xl font-black">${orders.reduce((a, b) => a + b.total, 0).toLocaleString()}</p>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {/* Top Metrics Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 bg-cyan-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all" />
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-cyan-500/20 rounded-xl"><DollarSign className="text-cyan-400 w-5 h-5" /></div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Gross Revenue</span>
+              </div>
+              <p className="text-3xl font-black">${totalRevenue.toLocaleString()}</p>
+              <div className="mt-2 flex items-center gap-1 text-[10px] text-green-400 font-bold">
+                <TrendingUp className="w-3 h-3" /> +12.5% from last cycle
               </div>
             </div>
-            <div className="glass p-6 rounded-2xl border border-white/10 flex items-center gap-4">
-              <div className="p-3 bg-purple-500/20 rounded-xl"><Package className="text-purple-400" /></div>
-              <div>
-                <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">Active Orders</p>
-                <p className="text-2xl font-black">{orders.length}</p>
+
+            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 bg-purple-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all" />
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-purple-500/20 rounded-xl"><ShoppingBag className="text-purple-400 w-5 h-5" /></div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Avg Order Value</span>
               </div>
+              <p className="text-3xl font-black">${avgOrderValue}</p>
+              <div className="mt-2 text-[10px] text-slate-500 font-bold uppercase">Efficiency: 94.2%</div>
             </div>
-            <div className="glass p-6 rounded-2xl border border-white/10 flex items-center gap-4">
-              <div className="p-3 bg-blue-500/20 rounded-xl"><Users className="text-blue-400" /></div>
-              <div>
-                <p className="text-xs text-slate-400 uppercase tracking-widest font-bold">New Customers</p>
-                <p className="text-2xl font-black">124</p>
+
+            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 bg-blue-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all" />
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-blue-500/20 rounded-xl"><Target className="text-blue-400 w-5 h-5" /></div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">CAC (Mocked)</span>
+              </div>
+              <p className="text-3xl font-black">$42.10</p>
+              <div className="mt-2 text-[10px] text-cyan-400 font-bold uppercase">Stable Range</div>
+            </div>
+
+            <div className="glass p-6 rounded-3xl border border-white/10 relative overflow-hidden group">
+              <div className="absolute -right-4 -top-4 bg-rose-500/10 w-24 h-24 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all" />
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 bg-rose-500/20 rounded-xl"><Activity className="text-rose-400 w-5 h-5" /></div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest font-black">Conversion Rate</span>
+              </div>
+              <p className="text-3xl font-black">3.8%</p>
+              <div className="mt-2 text-[10px] text-rose-400 font-bold uppercase tracking-tighter flex items-center gap-1">
+                Peak Load detected
               </div>
             </div>
           </div>
 
-          <div className="glass p-8 rounded-2xl border border-white/10 h-80">
-            <h3 className="text-lg font-bold mb-6">Performance Matrix</h3>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={statsData}>
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  cursor={{fill: 'rgba(255,255,255,0.05)'}}
-                  contentStyle={{backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)'}}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {statsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#06b6d4' : index === 1 ? '#8b5cf6' : '#3b82f6'} />
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="glass p-8 rounded-[2.5rem] border border-white/10 h-[400px] flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-black flex items-center gap-2">
+                  <TrendingUp className="text-cyan-400 w-4 h-4" /> Revenue Trajectory
+                </h3>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Live Uplink</span>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={revenueTrend}>
+                    <defs>
+                      <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#06b6d4" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <XAxis 
+                      dataKey="name" 
+                      stroke="#64748b" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      dy={10}
+                    />
+                    <YAxis 
+                      stroke="#64748b" 
+                      fontSize={10} 
+                      tickLine={false} 
+                      axisLine={false} 
+                      tickFormatter={(value) => `$${value}`}
+                    />
+                    <Tooltip 
+                      cursor={{stroke: 'rgba(255,255,255,0.1)'}}
+                      contentStyle={{backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', fontSize: '12px'}}
+                    />
+                    <Area 
+                      type="monotone" 
+                      dataKey="rev" 
+                      stroke="#06b6d4" 
+                      strokeWidth={3}
+                      fillOpacity={1} 
+                      fill="url(#colorRev)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="glass p-8 rounded-[2.5rem] border border-white/10 h-[400px] flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-lg font-black flex items-center gap-2">
+                  <Layers className="text-purple-400 w-4 h-4" /> Sector Distribution
+                </h3>
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Sales per Category</span>
+              </div>
+              <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={salesByCategory.length > 0 ? salesByCategory : [{name: 'Empty', value: 1}]}
+                      innerRadius={80}
+                      outerRadius={100}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {salesByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                      {salesByCategory.length === 0 && <Cell fill="rgba(255,255,255,0.05)" />}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{backgroundColor: '#0f172a', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', fontSize: '12px'}}
+                    />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36} 
+                      iconType="circle" 
+                      wrapperStyle={{fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold'}}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Table Summary */}
+          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden">
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/5">
+              <h3 className="font-black text-sm uppercase tracking-widest">Inventory Performance Logs</h3>
+              <button className="text-[10px] font-black text-cyan-400 flex items-center gap-1 hover:gap-2 transition-all">
+                Export Full Report <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="p-0 overflow-x-auto">
+              <table className="w-full text-left text-[11px]">
+                <thead className="text-slate-500 uppercase tracking-widest font-black border-b border-white/5">
+                  <tr>
+                    <th className="px-8 py-4">Hardware Unit</th>
+                    <th className="px-8 py-4">Velocity</th>
+                    <th className="px-8 py-4">Stock Integrity</th>
+                    <th className="px-8 py-4">Projected Depletion</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {products.slice(0, 4).map(p => (
+                    <tr key={p.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-8 py-4 font-bold">{p.name}</td>
+                      <td className="px-8 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-cyan-500" 
+                              style={{ width: `${Math.floor(Math.random() * 60) + 20}%` }}
+                            />
+                          </div>
+                          <span className="text-slate-400">Stable</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-4">
+                        <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase ${p.stock < 10 ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                          {p.stock} Units Remaining
+                        </span>
+                      </td>
+                      <td className="px-8 py-4 text-slate-500 italic">~ {Math.floor(Math.random() * 14) + 2} Cycles</td>
+                    </tr>
                   ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -119,46 +289,51 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
           <div className="flex justify-end">
             <button 
               onClick={handleAddProduct}
-              className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold transition-all"
+              className="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-bold transition-all shadow-xl shadow-cyan-500/20"
             >
-              <Plus className="w-4 h-4" /> Add Product
+              <Plus className="w-4 h-4" /> Add New Unit
             </button>
           </div>
-          <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-wider">
+              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                 <tr>
-                  <th className="px-6 py-4">Product</th>
-                  <th className="px-6 py-4">Category</th>
-                  <th className="px-6 py-4">Price</th>
-                  <th className="px-6 py-4">Stock</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-8 py-6">Hardware Identifier</th>
+                  <th className="px-8 py-6">Sector</th>
+                  <th className="px-8 py-6">Credit Cost</th>
+                  <th className="px-8 py-6">Distribution Grid</th>
+                  <th className="px-8 py-6 text-right">Access</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {products.map(p => (
-                  <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img src={p.image} className="w-10 h-10 rounded-lg object-cover" />
-                        <span className="font-bold">{p.name}</span>
+                  <tr key={p.id} className="hover:bg-white/5 transition-colors group">
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <img src={p.image} className="w-12 h-12 rounded-xl object-cover border border-white/10 group-hover:border-cyan-500/50 transition-colors" />
+                        <div>
+                          <p className="font-black text-white">{p.name}</p>
+                          <p className="text-[10px] text-slate-500 font-mono">ID: {p.id.toUpperCase()}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-slate-400">{p.category}</td>
-                    <td className="px-6 py-4 font-bold">${p.price}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${p.stock < 10 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                    <td className="px-8 py-5">
+                      <span className="text-slate-400 font-bold">{p.category}</span>
+                    </td>
+                    <td className="px-8 py-5 font-black text-cyan-400">${p.price}</td>
+                    <td className="px-8 py-5">
+                      <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight ${p.stock < 10 ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
                         {p.stock} units
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button className="p-2 hover:bg-white/10 rounded-lg transition-colors text-slate-400 hover:text-white">
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex justify-end gap-3">
+                        <button className="p-2.5 hover:bg-white/10 rounded-xl transition-colors text-slate-500 hover:text-white border border-white/5">
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDeleteProduct(p.id)}
-                          className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-slate-400 hover:text-red-400"
+                          className="p-2.5 hover:bg-red-500/20 rounded-xl transition-colors text-slate-500 hover:text-red-400 border border-white/5"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -174,50 +349,61 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ products, orders, setProducts, 
 
       {tab === 'orders' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+          <div className="glass rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl">
             <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-wider">
+              <thead className="bg-white/5 text-slate-400 font-bold uppercase tracking-widest text-[10px]">
                 <tr>
-                  <th className="px-6 py-4">Order ID</th>
-                  <th className="px-6 py-4">Customer</th>
-                  <th className="px-6 py-4">Date</th>
-                  <th className="px-6 py-4">Total</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-8 py-6">Transmission ID</th>
+                  <th className="px-8 py-6">Authorized Citizen</th>
+                  <th className="px-8 py-6">Timestamp</th>
+                  <th className="px-8 py-6">Total Credits</th>
+                  <th className="px-8 py-6">Sync Status</th>
+                  <th className="px-8 py-6 text-right">Override</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {orders.map(o => (
                   <tr key={o.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4 font-mono text-cyan-400">#{o.id.toUpperCase()}</td>
-                    <td className="px-6 py-4">
-                      <div className="font-bold">{o.customerName}</div>
-                      <div className="text-[10px] text-slate-500">{o.phone}</div>
+                    <td className="px-8 py-5 font-mono text-cyan-400">#{o.id.toUpperCase()}</td>
+                    <td className="px-8 py-5">
+                      <div className="font-black text-white">{o.customerName}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{o.phone}</div>
                     </td>
-                    <td className="px-6 py-4 text-slate-400">{o.date}</td>
-                    <td className="px-6 py-4 font-bold">${o.total}</td>
-                    <td className="px-6 py-4">
-                      <span className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold w-fit ${
-                        o.status === OrderStatus.DELIVERED ? 'bg-green-500/20 text-green-400' : 
-                        o.status === OrderStatus.PROCESSING ? 'bg-cyan-500/20 text-cyan-400' : 'bg-yellow-500/20 text-yellow-400'
+                    <td className="px-8 py-5 text-slate-400 font-bold">{o.date}</td>
+                    <td className="px-8 py-5 font-black text-white">${o.total}</td>
+                    <td className="px-8 py-5">
+                      <span className={`flex items-center gap-2 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest w-fit border ${
+                        o.status === OrderStatus.DELIVERED ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
+                        o.status === OrderStatus.PROCESSING ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
                       }`}>
-                        {o.status === OrderStatus.DELIVERED ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                        <div className={`w-1.5 h-1.5 rounded-full ${
+                          o.status === OrderStatus.DELIVERED ? 'bg-green-400' : 
+                          o.status === OrderStatus.PROCESSING ? 'bg-cyan-400' : 'bg-yellow-400'
+                        } animate-pulse`} />
                         {o.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-8 py-5 text-right">
                       <select 
-                        className="bg-white/5 border border-white/10 text-[10px] rounded-lg p-1 focus:outline-none focus:border-cyan-500"
+                        className="bg-[#0f172a] border border-white/10 text-[10px] font-black uppercase tracking-tighter rounded-xl px-3 py-2 focus:outline-none focus:border-cyan-500 text-slate-300"
                         value={o.status}
                         onChange={(e) => updateOrderStatus(o.id, e.target.value as OrderStatus)}
                       >
                         <option value={OrderStatus.PENDING}>Pending</option>
                         <option value={OrderStatus.PROCESSING}>Processing</option>
                         <option value={OrderStatus.DELIVERED}>Delivered</option>
+                        <option value={OrderStatus.CANCELLED}>Cancelled</option>
                       </select>
                     </td>
                   </tr>
                 ))}
+                {orders.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-8 py-20 text-center text-slate-500 font-bold italic">
+                      No active transmissions detected in the sector.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
