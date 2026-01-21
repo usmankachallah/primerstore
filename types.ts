@@ -6,6 +6,18 @@ export enum OrderStatus {
   CANCELLED = 'Cancelled'
 }
 
+export interface ProductVariantOption {
+  id: string;
+  name: string;
+  priceModifier?: number;
+  stockModifier?: number;
+}
+
+export interface ProductVariant {
+  name: string;
+  options: ProductVariantOption[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -14,11 +26,15 @@ export interface Product {
   image: string;
   category: string;
   stock: number;
+  isNew?: boolean;
   arModel?: string;
+  techSpecs?: Record<string, string>;
+  variants?: ProductVariant[];
 }
 
 export interface CartItem extends Product {
   quantity: number;
+  selectedVariants?: Record<string, string>;
 }
 
 export interface Order {
@@ -42,4 +58,4 @@ export interface User {
   isAdmin: boolean;
 }
 
-export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services';
+export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services' | 'faq' | 'support-ticket' | 'roadmap' | 'sync-terms';

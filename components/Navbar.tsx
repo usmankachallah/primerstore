@@ -94,12 +94,14 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, cartCount, user, 
             )}
           </button>
           
-          <button 
-            onClick={() => setView('settings')}
-            className={`p-2 hover:bg-white/5 rounded-full transition-colors group ${currentView === 'settings' ? 'text-cyan-400 bg-white/5' : 'text-slate-300'}`}
-          >
-            <Settings className="w-5 h-5 group-hover:text-cyan-400" />
-          </button>
+          {user && (
+            <button 
+              onClick={() => setView('settings')}
+              className={`p-2 hover:bg-white/5 rounded-full transition-colors group ${currentView === 'settings' ? 'text-cyan-400 bg-white/5' : 'text-slate-300'}`}
+            >
+              <Settings className="w-5 h-5 group-hover:text-cyan-400" />
+            </button>
+          )}
 
           <button 
             onClick={() => setView(user ? 'profile' : 'auth')}

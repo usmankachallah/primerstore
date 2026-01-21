@@ -10,6 +10,10 @@ import AboutPage from './components/AboutPage';
 import ContactPage from './components/ContactPage';
 import SettingsPage from './components/SettingsPage';
 import ServicesPage from './components/ServicesPage';
+import FAQPage from './components/FAQPage';
+import SupportTicketPage from './components/SupportTicketPage';
+import RoadmapPage from './components/RoadmapPage';
+import SyncTermsPage from './components/SyncTermsPage';
 import { Product, CartItem, Order, OrderStatus, View, User } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
@@ -17,7 +21,8 @@ import {
   CheckCircle2, Search, Filter, Package, Cpu, 
   User as UserIcon, Settings, Heart, LayoutDashboard, 
   History, Shield, ShieldCheck, MapPin, Phone, Mail, Trash2, Zap, DollarSign, LogOut, Lock,
-  Wallet, Fingerprint, Activity, Key, Eye, EyeOff, AlertTriangle, Plus, Edit3, TrendingUp
+  Wallet, Fingerprint, Activity, Key, Eye, EyeOff, AlertTriangle, Plus, Edit3, TrendingUp,
+  Globe, Github, Twitter, Linkedin, ExternalLink, Sparkles
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -34,6 +39,18 @@ const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
+  // --- Redirect Logic ---
+  useEffect(() => {
+    // 1. If a user is logged in and tries to access the guest-only 'home' view, redirect them to the shop.
+    if (user && view === 'home') {
+      setView('shop');
+    }
+    // 2. If a user is NOT logged in and tries to access 'settings', redirect to auth.
+    if (!user && view === 'settings') {
+      setView('auth');
+    }
+  }, [user, view]);
+
   // --- Derived State ---
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -49,6 +66,10 @@ const App: React.FC = () => {
   const wishlistProducts = useMemo(() => {
     return products.filter(p => wishlist.includes(p.id));
   }, [products, wishlist]);
+
+  const newArrivals = useMemo(() => {
+    return products.filter(p => p.isNew).slice(0, 4);
+  }, [products]);
 
   const totalSpent = useMemo(() => {
     return orders.reduce((acc, o) => acc + o.total, 0);
@@ -76,7 +97,7 @@ const App: React.FC = () => {
       savedAddresses: userData.savedAddresses || [userData.address || 'Neo-Tokyo Sector 4']
     };
     setUser(userWithAddresses);
-    setView('home');
+    setView('shop'); // Direct to shop immediately on login
   };
 
   const handleLogout = () => {
@@ -84,13 +105,29 @@ const App: React.FC = () => {
     setView('home');
   };
 
-  const addToCart = (product: Product, quantity: number = 1) => {
+  const addToCart = (product: Product, quantity: number = 1, selectedVariants?: Record<string, string>) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
+      // Calculate adjusted price based on variants
+      let finalPrice = product.price;
+      if (selectedVariants && product.variants) {
+        product.variants.forEach(v => {
+          const optId = selectedVariants[v.name];
+          const option = v.options.find(o => o.id === optId);
+          if (option) finalPrice += (option.priceModifier || 0);
+        });
       }
-      return [...prev, { ...product, quantity }];
+
+      // Create a unique key for cart items that differ by variants
+      const variantKey = selectedVariants ? JSON.stringify(selectedVariants) : '';
+      const existing = prev.find(item => item.id === product.id && JSON.stringify(item.selectedVariants) === variantKey);
+      
+      if (existing) {
+        return prev.map(item => (item.id === product.id && JSON.stringify(item.selectedVariants) === variantKey) 
+          ? { ...item, quantity: item.quantity + quantity } 
+          : item
+        );
+      }
+      return [...prev, { ...product, price: finalPrice, quantity, selectedVariants }];
     });
   };
 
@@ -147,83 +184,138 @@ const App: React.FC = () => {
   };
 
   // --- Views ---
-  const renderHome = () => (
-    <div className="space-y-24 pb-24">
-      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#020617] z-10" />
-          <img 
-            src="https://images.unsplash.com/photo-1635776062127-d379bfcba9f8?q=80&w=1920&auto=format&fit=crop" 
-            className="w-full h-full object-cover opacity-40 blur-[2px]"
-            alt="Cyberpunk background"
-          />
-        </div>
-        <div className="relative z-20 text-center max-w-4xl px-6 animate-in fade-in zoom-in duration-1000">
-          <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-6 border border-cyan-500/20">
-            Evolution of Commerce
-          </span>
-          <h1 className="text-6xl md:text-8xl font-black mb-8 leading-tight tracking-tighter">
-            THE FUTURE IS <br />
-            <span className="gradient-text">PRIMER</span>
-          </h1>
-          <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Experience the next generation of digital retail. Precision-engineered gear for the modern human.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button 
-              onClick={() => setView('shop')}
-              className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-cyan-500/20"
-            >
-              Initialize Shopping <ArrowRight className="w-5 h-5" />
-            </button>
-            <button onClick={() => setView('about')} className="px-8 py-4 glass hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/10">
-              View Roadmap
-            </button>
-          </div>
-        </div>
-      </section>
+  const renderHome = () => {
+    // If logged in, do not show renderHome content at all.
+    if (user) return null;
 
-      <section className="max-w-7xl mx-auto px-6">
-        <div className="flex items-end justify-between mb-12">
-          <div>
-            <h2 className="text-3xl font-black mb-2">Featured Tech</h2>
-            <p className="text-slate-500">Curated for maximum performance.</p>
+    return (
+      <div className="space-y-24 pb-24">
+        <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#020617] z-10" />
+            <img 
+              src="https://images.unsplash.com/photo-1635776062127-d379bfcba9f8?q=80&w=1920&auto=format&fit=crop" 
+              className="w-full h-full object-cover opacity-40 blur-[2px]"
+              alt="Cyberpunk background"
+            />
           </div>
-          <button onClick={() => setView('shop')} className="text-cyan-400 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
-            See all catalog <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {products.slice(0, 3).map(p => (
-            <div 
-              key={p.id} 
-              className="group glass rounded-3xl p-4 border border-white/10 transition-all hover:-translate-y-2 hover:border-cyan-500/50 cursor-pointer"
-              onClick={() => handleProductClick(p)}
-            >
-              <div className="relative aspect-square rounded-2xl overflow-hidden mb-6">
-                <img src={p.image} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
-                <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1">
-                  <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                  <span className="text-[10px] font-bold">4.9</span>
+          <div className="relative z-20 text-center max-w-4xl px-6 animate-in fade-in zoom-in duration-1000">
+            <span className="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold uppercase tracking-widest mb-6 border border-cyan-500/20">
+              Evolution of Commerce
+            </span>
+            <h1 className="text-6xl md:text-8xl font-black mb-8 leading-tight tracking-tighter">
+              THE FUTURE IS <br />
+              <span className="gradient-text">PRIMER</span>
+            </h1>
+            <p className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+              Experience the next generation of digital retail. Precision-engineered gear for the modern human.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button 
+                onClick={() => setView('shop')}
+                className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl font-bold flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-cyan-500/20"
+              >
+                Initialize Shopping <ArrowRight className="w-5 h-5" />
+              </button>
+              <button onClick={() => setView('roadmap')} className="px-8 py-4 glass hover:bg-white/10 rounded-2xl font-bold transition-all border border-white/10">
+                View Roadmap
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* New Arrivals Section */}
+        <section className="max-w-7xl mx-auto px-6">
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <div className="flex items-center gap-2 text-cyan-400 mb-2">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+                <span className="text-xs font-black uppercase tracking-[0.2em]">Latest Iterations</span>
+              </div>
+              <h2 className="text-4xl font-black">NEURAL DROPS</h2>
+            </div>
+            <button onClick={() => setView('shop')} className="text-slate-500 hover:text-white text-xs font-black uppercase tracking-widest transition-colors flex items-center gap-2">
+              Browse History <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {newArrivals.map(p => (
+              <div 
+                key={p.id} 
+                className="group relative glass rounded-[2rem] p-4 border border-white/10 transition-all hover:-translate-y-2 hover:border-cyan-500/50 cursor-pointer overflow-hidden"
+                onClick={() => handleProductClick(p)}
+              >
+                <div className="absolute top-6 left-6 z-10">
+                   <div className="bg-cyan-500 text-white text-[9px] font-black px-2 py-1 rounded-md shadow-[0_0_10px_rgba(6,182,212,0.5)] animate-pulse uppercase tracking-widest">
+                     NEW
+                   </div>
+                </div>
+                <div className="relative aspect-square rounded-2xl overflow-hidden mb-6">
+                  <img src={p.image} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="relative">
+                  <h3 className="text-lg font-bold mb-1 group-hover:text-cyan-400 transition-colors uppercase tracking-tight truncate">{p.name}</h3>
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-2xl font-black tracking-tighter">${p.price}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                      className="p-3 bg-white/5 hover:bg-cyan-600 rounded-xl transition-all group/btn"
+                    >
+                      <Plus className="w-5 h-5 text-slate-400 group-hover/btn:text-white" />
+                    </button>
+                  </div>
                 </div>
               </div>
-              <h3 className="text-lg font-bold mb-1 group-hover:text-cyan-400 transition-colors">{p.name}</h3>
-              <p className="text-sm text-slate-500 mb-6 line-clamp-2">{p.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-black">${p.price}</span>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); addToCart(p); }}
-                  className="p-3 bg-white/5 hover:bg-cyan-600 rounded-xl transition-all group/btn"
-                >
-                  <ShoppingBag className="w-5 h-5 text-slate-400 group-hover/btn:text-white" />
-                </button>
-              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="max-w-7xl mx-auto px-6">
+          <div className="flex items-end justify-between mb-12">
+            <div>
+              <h2 className="text-3xl font-black mb-2">Featured Tech</h2>
+              <p className="text-slate-500">Curated for maximum performance.</p>
             </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+            <button onClick={() => setView('shop')} className="text-cyan-400 text-sm font-bold flex items-center gap-1 hover:gap-2 transition-all">
+              See all catalog <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {products.slice(0, 3).map(p => (
+              <div 
+                key={p.id} 
+                className="group glass rounded-3xl p-4 border border-white/10 transition-all hover:-translate-y-2 hover:border-cyan-500/50 cursor-pointer"
+                onClick={() => handleProductClick(p)}
+              >
+                <div className="relative aspect-square rounded-2xl overflow-hidden mb-6">
+                  {p.isNew && (
+                    <div className="absolute top-4 left-4 z-10 bg-cyan-500 text-white text-[8px] font-black px-2 py-0.5 rounded-sm uppercase">NEW</div>
+                  )}
+                  <img src={p.image} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={p.name} />
+                  <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-1">
+                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                    <span className="text-[10px] font-bold">4.9</span>
+                  </div>
+                </div>
+                <h3 className="text-lg font-bold mb-1 group-hover:text-cyan-400 transition-colors">{p.name}</h3>
+                <p className="text-sm text-slate-500 mb-6 line-clamp-2">{p.description}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-black">${p.price}</span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); addToCart(p); }}
+                    className="p-3 bg-white/5 hover:bg-cyan-600 rounded-xl transition-all group/btn"
+                  >
+                    <ShoppingBag className="w-5 h-5 text-slate-400 group-hover/btn:text-white" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  };
 
   const renderShop = () => (
     <div className="max-w-7xl mx-auto px-6 py-32 animate-in fade-in duration-500">
@@ -265,6 +357,9 @@ const App: React.FC = () => {
         {filteredProducts.map(p => (
           <div key={p.id} className="group glass rounded-3xl p-4 border border-white/10 transition-all hover:border-cyan-500/30 cursor-pointer" onClick={() => handleProductClick(p)}>
             <div className="relative aspect-square rounded-2xl overflow-hidden mb-6">
+              {p.isNew && (
+                <div className="absolute top-4 left-4 z-10 bg-cyan-500 text-white text-[8px] font-black px-2 py-0.5 rounded-sm uppercase shadow-lg">NEW</div>
+              )}
               <img src={p.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={p.name} />
               {p.stock < 10 && <span className="absolute bottom-4 left-4 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded-md">LOW STOCK</span>}
             </div>
@@ -293,11 +388,23 @@ const App: React.FC = () => {
         <div className="space-y-6">
           <div className="space-y-4">
             {cart.map(item => (
-              <div key={item.id} className="glass rounded-2xl p-4 border border-white/10 flex items-center gap-6">
+              <div key={item.id + JSON.stringify(item.selectedVariants)} className="glass rounded-2xl p-4 border border-white/10 flex items-center gap-6">
                 <img src={item.image} className="w-20 h-20 rounded-xl object-cover" alt={item.name} />
                 <div className="flex-1">
                   <h3 className="font-bold">{item.name}</h3>
-                  <p className="text-xs text-slate-500">${item.price}</p>
+                  {item.selectedVariants && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {Object.entries(item.selectedVariants).map(([k, v]) => {
+                        const opt = item.variants?.find(variant => variant.name === k)?.options.find(o => o.id === v);
+                        return (
+                          <span key={k} className="text-[9px] font-black uppercase tracking-tighter bg-cyan-500/10 text-cyan-400 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                            {k}: {opt?.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-500 mt-1">${item.price}</p>
                 </div>
                 <div className="flex items-center gap-4 bg-white/5 rounded-xl p-1 border border-white/5">
                   <button onClick={() => updateCartQuantity(item.id, -1)} className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-lg font-bold">-</button>
@@ -430,7 +537,7 @@ const App: React.FC = () => {
             <h3 className="text-xl font-black mb-6">Manifest Summary</h3>
             <div className="space-y-4 mb-8">
               {cart.map(item => (
-                <div key={item.id} className="flex justify-between items-center text-sm">
+                <div key={item.id + JSON.stringify(item.selectedVariants)} className="flex justify-between items-center text-sm">
                   <div className="flex items-center gap-3">
                     <img src={item.image} className="w-10 h-10 rounded-lg object-cover border border-white/5" alt={item.name} />
                     <div>
@@ -679,7 +786,7 @@ const App: React.FC = () => {
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                           {o.items.map(item => (
-                            <div key={item.id} className="flex items-center gap-3 bg-white/5 rounded-2xl p-2 border border-white/5">
+                            <div key={item.id + JSON.stringify(item.selectedVariants)} className="flex items-center gap-3 bg-white/5 rounded-2xl p-2 border border-white/5">
                               <img src={item.image} className="w-10 h-10 rounded-lg object-cover" alt={item.name} />
                               <div>
                                 <p className="text-xs font-bold truncate max-w-[120px]">{item.name}</p>
@@ -723,7 +830,7 @@ const App: React.FC = () => {
                         <div className="flex items-center justify-between mt-4">
                           <span className="text-lg font-black">${p.price}</span>
                           <button 
-                            onClick={() => addToCart(p)}
+                            onClick={() => handleProductClick(p)}
                             className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-[10px] font-black rounded-xl transition-all uppercase tracking-widest"
                           >
                             Deploy
@@ -783,7 +890,7 @@ const App: React.FC = () => {
           <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-8">Manifest Overview</h3>
           <div className="space-y-4 mb-10">
             {lastOrder.items.map(item => (
-              <div key={item.id} className="flex justify-between items-center text-sm">
+              <div key={item.id + JSON.stringify(item.selectedVariants)} className="flex justify-between items-center text-sm">
                 <span className="font-bold text-slate-300">{item.name} <span className="text-slate-600 font-black ml-2 text-[10px]">x{item.quantity}</span></span>
                 <span className="font-black text-cyan-400">${item.price * item.quantity}</span>
               </div>
@@ -841,10 +948,14 @@ const App: React.FC = () => {
         {view === 'cart' && renderCart()}
         {view === 'checkout' && renderCheckout()}
         {view === 'profile' && renderProfile()}
-        {view === 'settings' && <SettingsPage user={user} onUpdateUser={updateProfileData} />}
+        {view === 'settings' && user && <SettingsPage user={user} onUpdateUser={updateProfileData} />}
         {view === 'services' && <ServicesPage />}
         {view === 'about' && <AboutPage />}
         {view === 'contact' && <ContactPage />}
+        {view === 'faq' && <FAQPage setView={setView} />}
+        {view === 'support-ticket' && <SupportTicketPage setView={setView} />}
+        {view === 'roadmap' && <RoadmapPage />}
+        {view === 'sync-terms' && <SyncTermsPage setView={setView} />}
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'admin-auth' && <AdminAuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'order-confirmation' && renderOrderConfirmation()}
@@ -861,23 +972,102 @@ const App: React.FC = () => {
         onSelectProduct={handleProductClick} 
         onToggleWishlist={toggleWishlist} 
       />
-      <footer className="glass border-t border-white/10 py-12 px-6">
-        <div className="max-w-7xl auto flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex items-center gap-2">
-            <Cpu className="text-cyan-500 w-6 h-6" />
-            <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
+      
+      {/* Redesigned Footer Links Column Grid */}
+      <footer className="glass border-t border-white/10 pt-24 pb-12 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
+            {/* Brand Column */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="bg-cyan-500 p-1.5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+                  <Cpu className="text-white w-6 h-6" />
+                </div>
+                <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
+              </div>
+              <p className="text-sm text-slate-500 leading-relaxed font-medium">
+                The leading neural marketplace for post-human hardware. We provide the bridges to tomorrow's digital evolution.
+              </p>
+              <div className="flex gap-4 pt-4">
+                <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-cyan-400 border border-white/5 transition-all">
+                  <Twitter className="w-5 h-5" />
+                </button>
+                <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-cyan-400 border border-white/5 transition-all">
+                  <Linkedin className="w-5 h-5" />
+                </button>
+                <button className="p-2.5 glass rounded-xl text-slate-400 hover:text-cyan-400 border border-white/5 transition-all">
+                  <Github className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Catalog Column */}
+            <div className="space-y-6">
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Sector Grid</h4>
+              <ul className="space-y-3">
+                {CATEGORIES.map(cat => (
+                  <li key={cat}>
+                    <button 
+                      onClick={() => { setSelectedCategory(cat); setView('shop'); window.scrollTo(0,0); }}
+                      className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2 group"
+                    >
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-800 group-hover:bg-cyan-500 transition-colors" />
+                      {cat}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Protocols Column */}
+            <div className="space-y-6">
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Core Protocols</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => {setView('about'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">About the Collective</button></li>
+                <li><button onClick={() => {setView('services'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Neural Services</button></li>
+                <li><button onClick={() => {setView('contact'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Uplink Support</button></li>
+                <li><button onClick={() => {setView('faq'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2">FAQ Database <ExternalLink className="w-3 h-3" /></button></li>
+                <li><button onClick={() => {setView('roadmap'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">System Roadmap</button></li>
+              </ul>
+            </div>
+
+            {/* Security & Access Column */}
+            <div className="space-y-6">
+              <h4 className="text-[11px] font-black text-white uppercase tracking-[0.3em] mb-4">Neural Shield</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => {setView(user ? 'settings' : 'auth'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors flex items-center gap-2">Privacy Protocols <Shield className="w-3 h-3" /></button></li>
+                <li><button onClick={() => {setView('sync-terms'); window.scrollTo(0,0);}} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Sync Terms</button></li>
+                <li><button className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-colors">Biometric Policy</button></li>
+                <li>
+                  <button 
+                    onClick={() => {setView('admin-auth'); window.scrollTo(0,0);}} 
+                    className="mt-4 px-4 py-2 glass border border-purple-500/30 text-purple-400 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-purple-500/10 transition-all opacity-40 hover:opacity-100"
+                  >
+                    <Lock className="w-3 h-3" /> Admin Uplink
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest">
-            <button onClick={() => setView('about')} className="hover:text-cyan-400 transition-colors">About</button>
-            <button onClick={() => setView('contact')} className="hover:text-cyan-400 transition-colors">Contact</button>
-            <button 
-              onClick={() => setView('admin-auth')}
-              className="hover:text-purple-400 transition-colors flex items-center gap-1.5 opacity-40 hover:opacity-100"
-            >
-              <Lock className="w-3 h-3" /> Admin Uplink
-            </button>
+
+          <div className="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </div>
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Grid Status: Online & Synchronized</span>
+            </div>
+            
+            <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em]">
+              © 2077 PRIMER CORP. • DESIGNED IN NEO-TOKYO • ALL DATA ENCRYPTED
+            </p>
+
+            <div className="flex items-center gap-6">
+               <Globe className="w-4 h-4 text-slate-600 hover:text-cyan-400 cursor-pointer" />
+               <button className="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-colors">Global Node Selection</button>
+            </div>
           </div>
-          <p className="text-xs text-slate-600 font-bold">© 2077 PRIMER CORP. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
     </div>

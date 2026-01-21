@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, Send, X, Bot, User } from 'lucide-react';
-import { getAIAssistance } from '../services/geminiService';
+import { getAIAssistance } from '../geminiService';
 import { Product } from '../types';
 
 interface ChatSupportProps {

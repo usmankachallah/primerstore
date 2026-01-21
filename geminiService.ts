@@ -1,5 +1,6 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { Product } from "../types";
+import { Product } from "./types";
 
 // Strictly follow @google/genai coding guidelines for client initialization.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
