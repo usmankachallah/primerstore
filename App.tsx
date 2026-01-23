@@ -15,8 +15,9 @@ import SupportTicketPage from './components/SupportTicketPage';
 import RoadmapPage from './components/RoadmapPage';
 import SyncTermsPage from './components/SyncTermsPage';
 import BiometricPolicyPage from './components/BiometricPolicyPage';
+import OrderHistoryPage from './components/OrderHistoryPage';
 import Newsletter from './components/Newsletter';
-import { Product, CartItem, Order, OrderStatus, View, User } from './types';
+import { Product, CartItem, Order, OrderStatus, View, User, SupportTicket, TicketStatus } from './types';
 import { INITIAL_PRODUCTS, CATEGORIES } from './constants';
 import { 
   ShoppingBag, ArrowRight, Star, ArrowLeft, CreditCard, 
@@ -35,6 +36,20 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([
+    {
+      id: 'INC-77291',
+      customerId: 'USER-1',
+      customerName: 'Kaelen Vance',
+      type: 'Technical',
+      urgency: 'Critical',
+      subject: 'Aether Pods Spatial Sync Failure',
+      description: 'System-wide feedback loop detected when connecting to Neo-Tokyo grid.',
+      status: TicketStatus.IN_PROGRESS,
+      date: new Date().toLocaleDateString(),
+      assignedTo: 'Zenith Admin'
+    }
+  ]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +61,7 @@ const App: React.FC = () => {
     if (user && view === 'home') {
       setView(user.isAdmin ? 'admin' : 'shop');
     }
-    if (!user && view === 'settings') {
+    if (!user && (view === 'settings' || view === 'order-history' || view === 'support-ticket')) {
       setView('auth');
     }
     if (user?.isAdmin && (view === 'shop' || view === 'cart' || view === 'checkout' || view === 'services')) {
@@ -155,7 +170,7 @@ const App: React.FC = () => {
 
   const placeOrder = (customerDetails: { address: string, phone: string, name: string }) => {
     const newOrder: Order = {
-      id: Math.random().toString(36).substr(2, 6),
+      id: Math.random().toString(36).substr(2, 6).toUpperCase(),
       items: [...cart],
       total: cartTotal,
       status: OrderStatus.PENDING,
@@ -175,6 +190,22 @@ const App: React.FC = () => {
 
   const deleteOrder = (id: string) => {
     setOrders(prev => prev.filter(o => o.id !== id));
+  };
+
+  const addTicket = (ticket: SupportTicket) => {
+    setTickets(prev => [ticket, ...prev]);
+  };
+
+  const updateTicketStatus = (id: string, status: TicketStatus) => {
+    setTickets(prev => prev.map(t => t.id === id ? { ...t, status } : t));
+  };
+
+  const assignTicket = (id: string, adminName: string) => {
+    setTickets(prev => prev.map(t => t.id === id ? { ...t, assignedTo: adminName, status: TicketStatus.IN_PROGRESS } : t));
+  };
+
+  const deleteTicket = (id: string) => {
+    setTickets(prev => prev.filter(t => t.id !== id));
   };
 
   const handleProductClick = (p: Product) => {
@@ -557,7 +588,7 @@ const App: React.FC = () => {
               <button onClick={() => setProfileTab('overview')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'overview' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
                 <LayoutDashboard className="w-4 h-4" /> Neural Overview
               </button>
-              <button onClick={() => setProfileTab('orders')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'orders' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
+              <button onClick={() => setView('order-history')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all text-slate-400 hover:text-white hover:bg-white/5`}>
                 <History className="w-4 h-4" /> Order Ledger
               </button>
               <button onClick={() => setProfileTab('wishlist')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all ${profileTab === 'wishlist' ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}>
@@ -625,41 +656,6 @@ const App: React.FC = () => {
                 </div>
               </div>
             )}
-
-            {profileTab === 'orders' && (
-              <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                <h3 className="text-2xl font-black">Transmission Archive</h3>
-                {orders.length > 0 ? (
-                  <div className="space-y-4">
-                    {orders.map(o => (
-                      <div key={o.id} className="glass rounded-3xl p-6 border border-white/10 hover:border-white/20 transition-all">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                          <div>
-                            <p className="font-mono text-cyan-400 text-lg mb-1">#{o.id.toUpperCase()}</p>
-                            <p className="text-xs text-slate-500 font-bold uppercase tracking-tighter">{o.date} • {o.items.length} Modules</p>
-                          </div>
-                          <div className="flex flex-col items-end">
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-1 ${
-                              o.status === OrderStatus.DELIVERED ? 'bg-green-500/20 text-green-400' :
-                              o.status === OrderStatus.PENDING ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-cyan-500/20 text-cyan-400'
-                            }`}>
-                              {o.status}
-                            </span>
-                            <p className="text-xl font-black">${o.total}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="glass rounded-[3rem] p-16 text-center border border-white/10">
-                    <History className="w-16 h-16 text-slate-800 mx-auto mb-6" />
-                    <p className="text-slate-500 mb-8">The archive is vacant. No telemetry found.</p>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -682,7 +678,10 @@ const App: React.FC = () => {
         </div>
         <h1 className="text-5xl font-black mb-4 uppercase">Uplink Successful</h1>
         <p className="text-slate-400 text-lg mb-12 font-medium">Transmission ID: <span className="text-cyan-400 font-mono">#{lastOrder.id.toUpperCase()}</span> has been broadcast to the distribution grid.</p>
-        <button onClick={() => setView('shop')} className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs">Return to Catalog</button>
+        <div className="flex justify-center gap-4">
+          <button onClick={() => setView('order-history')} className="px-10 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black transition-all shadow-xl shadow-cyan-500/20 uppercase tracking-widest text-xs">View Archive</button>
+          <button onClick={() => setView('shop')} className="px-10 py-4 glass hover:bg-white/10 text-white rounded-2xl font-black transition-all border border-white/10 uppercase tracking-widest text-xs">Return to Catalog</button>
+        </div>
       </div>
     );
   };
@@ -703,14 +702,15 @@ const App: React.FC = () => {
         {view === 'about' && <AboutPage />}
         {view === 'contact' && <ContactPage />}
         {view === 'faq' && <FAQPage setView={setView} />}
-        {view === 'support-ticket' && <SupportTicketPage setView={setView} />}
+        {view === 'support-ticket' && <SupportTicketPage setView={setView} onAddTicket={addTicket} user={user} />}
         {view === 'roadmap' && <RoadmapPage />}
         {view === 'sync-terms' && <SyncTermsPage setView={setView} />}
         {view === 'biometric-policy' && <BiometricPolicyPage setView={setView} />}
+        {view === 'order-history' && <OrderHistoryPage orders={orders} setView={setView} onAddToCart={addToCart} />}
         {view === 'auth' && <AuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'admin-auth' && <AdminAuthPage onLogin={handleLogin} onClose={() => setView('home')} />}
         {view === 'order-confirmation' && renderOrderConfirmation()}
-        {view === 'admin' && user?.isAdmin && <AdminPanel products={products} orders={orders} setProducts={setProducts} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} />}
+        {view === 'admin' && user?.isAdmin && <AdminPanel products={products} orders={orders} tickets={tickets} user={user} setProducts={setProducts} updateOrderStatus={updateOrderStatus} deleteOrder={deleteOrder} updateTicketStatus={updateTicketStatus} assignTicket={assignTicket} deleteTicket={deleteTicket} />}
       </main>
       {!isAdmin && <ChatSupport products={products} />}
       <ProductModal product={selectedProduct} allProducts={products} user={user} wishlist={wishlist} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} onSelectProduct={handleProductClick} onToggleWishlist={toggleWishlist} />
@@ -718,16 +718,64 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
             <div className="space-y-6">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="bg-cyan-500 p-1.5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.4)]">
+              <div 
+                className="flex items-center gap-2 mb-6 cursor-pointer group"
+                onClick={() => setView('home')}
+              >
+                <div className="bg-cyan-500 p-1.5 rounded-lg shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-transform group-hover:rotate-6">
                   <Cpu className="text-white w-6 h-6" />
                 </div>
                 <span className="text-2xl font-black tracking-tighter gradient-text">PRIMERSTORE</span>
               </div>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                The vanguard of neural-linked commerce. Precision gear for the modern citizen. Designed in Neo-Tokyo, shipped across the planetary grid.
+              </p>
+              <div className="flex gap-4">
+                <button className="p-2 glass rounded-lg hover:bg-cyan-500/10 hover:text-cyan-400 transition-all border border-white/5"><Twitter className="w-4 h-4" /></button>
+                <button className="p-2 glass rounded-lg hover:bg-cyan-500/10 hover:text-cyan-400 transition-all border border-white/5"><Github className="w-4 h-4" /></button>
+                <button className="p-2 glass rounded-lg hover:bg-cyan-500/10 hover:text-cyan-400 transition-all border border-white/5"><Linkedin className="w-4 h-4" /></button>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Neural Grid</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => setView('shop')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Neural Catalog</button></li>
+                <li><button onClick={() => setView('services')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Maintenance Systems</button></li>
+                <li><button onClick={() => setView('roadmap')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Development Roadmap</button></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Central Support</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => setView('about')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Company Core</button></li>
+                <li><button onClick={() => setView('order-history')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Order Archive</button></li>
+                <li><button onClick={() => setView('faq')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Knowledge Base</button></li>
+                <li><button onClick={() => setView('support-ticket')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Incident Report</button></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Protocol Vault</h4>
+              <ul className="space-y-3">
+                <li><button onClick={() => setView('sync-terms')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Sync Protocols</button></li>
+                <li><button onClick={() => setView('biometric-policy')} className="text-sm font-bold text-slate-500 hover:text-cyan-400 transition-all hover:translate-x-1">Biometric Guard</button></li>
+                <li className="flex items-center gap-2 pt-2">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Grid Status: Optimal</span>
+                </li>
+              </ul>
             </div>
           </div>
+
           <div className="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8">
             <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.2em]">© 2077 PRIMER CORP. • DESIGNED IN NEO-TOKYO • ALL DATA ENCRYPTED</p>
+            <div className="flex items-center gap-6 opacity-30">
+              <ShieldCheck className="w-5 h-5" />
+              <Fingerprint className="w-5 h-5" />
+              <Activity className="w-5 h-5" />
+            </div>
           </div>
         </div>
       </footer>

@@ -5,13 +5,15 @@ import {
   Cpu, Activity, CheckCircle2, ArrowLeft, 
   Fingerprint, Upload, Info
 } from 'lucide-react';
-import { View } from '../types';
+import { View, SupportTicket, TicketStatus, User } from '../types';
 
 interface SupportTicketPageProps {
   setView: (view: View) => void;
+  onAddTicket: (ticket: SupportTicket) => void;
+  user: User | null;
 }
 
-const SupportTicketPage: React.FC<SupportTicketPageProps> = ({ setView }) => {
+const SupportTicketPage: React.FC<SupportTicketPageProps> = ({ setView, onAddTicket, user }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
@@ -29,6 +31,20 @@ const SupportTicketPage: React.FC<SupportTicketPageProps> = ({ setView }) => {
     // Simulate neural processing and ticket generation
     setTimeout(() => {
       const newId = `INC-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      
+      const newTicket: SupportTicket = {
+        id: newId,
+        customerId: user?.id || 'ANONYMOUS',
+        customerName: user?.name || 'Anonymous Citizen',
+        type: formData.type,
+        urgency: formData.urgency,
+        subject: formData.subject,
+        description: formData.description,
+        status: TicketStatus.OPEN,
+        date: new Date().toLocaleDateString()
+      };
+
+      onAddTicket(newTicket);
       setTicketId(newId);
       setIsSubmitting(false);
       setIsSubmitted(true);
@@ -39,7 +55,7 @@ const SupportTicketPage: React.FC<SupportTicketPageProps> = ({ setView }) => {
     return (
       <div className="max-w-4xl mx-auto px-6 py-32 text-center animate-in zoom-in duration-500">
         <div className="w-24 h-24 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-cyan-500/30">
-          <CheckCircle2 className="w-12 h-12 text-cyan-400" />
+          <CheckCircle2 className="w-12 h-12 text-green-400" />
         </div>
         <h1 className="text-5xl font-black mb-4 uppercase">TRANSMISSION BROADCAST</h1>
         <p className="text-slate-400 text-lg mb-12 font-medium">

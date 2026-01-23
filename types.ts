@@ -6,6 +6,26 @@ export enum OrderStatus {
   CANCELLED = 'Cancelled'
 }
 
+export enum TicketStatus {
+  OPEN = 'Open',
+  IN_PROGRESS = 'In Progress',
+  RESOLVED = 'Resolved',
+  CLOSED = 'Closed'
+}
+
+export interface SupportTicket {
+  id: string;
+  customerId: string;
+  customerName: string;
+  type: string;
+  urgency: string;
+  subject: string;
+  description: string;
+  status: TicketStatus;
+  date: string;
+  assignedTo?: string;
+}
+
 export interface ProductVariantOption {
   id: string;
   name: string;
@@ -58,4 +78,4 @@ export interface User {
   isAdmin: boolean;
 }
 
-export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services' | 'faq' | 'support-ticket' | 'roadmap' | 'sync-terms' | 'biometric-policy';
+export type View = 'home' | 'shop' | 'cart' | 'checkout' | 'profile' | 'admin' | 'order-confirmation' | 'auth' | 'admin-auth' | 'about' | 'contact' | 'settings' | 'services' | 'faq' | 'support-ticket' | 'roadmap' | 'sync-terms' | 'biometric-policy' | 'order-history';
